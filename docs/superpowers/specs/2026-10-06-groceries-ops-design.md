@@ -143,7 +143,7 @@ plan: { avoid_repeat_weeks: 3 }
 ## 5. Plan mode (`/groceries plan`)
 
 ### 5.1 Pre-flight
-- Read the cart via `read_cart`. If not empty: show contents, ask "Empty it before we start?" → yes: `clear_line` each line; no: stop.
+- Read the cart via `read_cart`. If not empty: show contents, ask "Empty it before we start?" → yes: `set_quantity` 0 on each line; no: stop.
 - Reconcile habits with real orders (`habits.ts reconcile`, §7).
 
 ### 5.2 Brief
@@ -183,7 +183,7 @@ Packs round up to cover the needed quantity.
 
 ### 5.8 Review and fill
 - Summary table: item · product · qty · price · reason (correction / history / rule / habit / substitute). User may correct any line; corrections persist to `product-choices.yml`.
-- On approval: `add_to_cart` each line. If an add fails for a `key` ingredient, run the §5.6 drop/replace flow and reduce/remove already-added lines via `clear_line`/`add_to_cart` with the new quantity.
+- On approval: `add_to_cart` each line. If an add fails for a `key` ingredient, run the §5.6 drop/replace flow and reduce/remove already-added lines via `set_quantity`.
 - Verify via `read_cart`; report any diff.
 - Write `data/runs/YYYY-MM-DD.md`; mark recipes `used_on`; record intended purchases (`habits.ts record --pending`).
 - **Stop. Checkout is the user's.**
@@ -227,7 +227,7 @@ capabilities:
   login: carrefour_browser_login
   search: search_products
   add_to_cart: add_item_to_cart_by_ean
-  clear_line: add_item_to_cart                # counter: 0 — to verify live
+  set_quantity: add_item_to_cart              # sets a line's quantity; 0 removes it — to verify live
   read_cart: get_cart
   order_history: [get_last_orders, get_loyalty_order_receipts]
   frequent: get_frequent_purchases
@@ -259,12 +259,14 @@ export interface Recipe {
 export interface RecipeSource {
   id: string;                                // "marmiton"
   label: string;
-  matches(url: string): boolean;             // claims a URL
-  search?(query: string, limit: number): Promise<string[]>;  // optional: recipe URLs
-  searchHint?: string;                       // fallback for Claude's WebSearch, e.g. "site:marmiton.org/recettes"
-  fetch(url: string): Promise<Recipe>;       // throws RecipeParseError
   healthUrl: string;                         // live URL used by doctor
+  searchHint?: string;                       // fallback for Claude's WebSearch, e.g. "site:marmiton.org/recettes"
+  matches(url: string): boolean;             // claims a URL
+  parse(html: string, url: string): Recipe;  // pure; throws RecipeParseError
+  searchUrl?(query: string): string;         // optional search support…
+  parseSearch?(html: string): string[];      // …pure: results page → recipe URLs
 }
+// Network I/O lives once in recipe-sources/index.ts (fetchRecipe, searchRecipes), so every source is testable offline.
 ```
 
 - `recipe-sources/index.ts` is the only place that lists sources. Adding one = new module + registry line + fixtures.
@@ -317,7 +319,7 @@ Login check caveat: if the server's Chromium profile is locked by the instance C
 
 ## 12. Items to verify during implementation
 
-1. `add_item_to_cart` with `counter: 0` removes a cart line (`clear_line`).
+1. `add_item_to_cart` with `counter: 0` removes a cart line, and `counter: n` sets (not increments) the quantity (`set_quantity`); whether `add_item_to_cart_by_ean` increments or sets.
 2. Doctor spawning a second MCP server instance while Claude Code's instance runs (Chromium profile lock).
 3. Exact argument shapes of `search_products`, `get_cart`, `get_last_orders` responses (EAN, price, availability fields).
 4. ~~Marmiton search~~ — resolved 2026-10-06: `recherche.aspx?aqt=<query>` returns an `ItemList` JSON-LD with recipe URLs, so the Marmiton source implements `search`.
