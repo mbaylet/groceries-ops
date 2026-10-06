@@ -1,0 +1,23 @@
+# groceries-ops profile — filled in by /groceries onboarding. Safe to edit by hand.
+household:
+  adults: 0
+  children: []          # e.g. [{ age: 6 }]
+  servings: 0           # servings per meal
+food:
+  diet: omnivore        # omnivore | vegetarian | vegan | pescatarian | other
+  exclusions: []        # hard exclusions, enforced by script, e.g. [champignon, porc]
+  preferences: ""       # free text, used by Claude when choosing recipes
+tools: [oven, hob]      # special appliances: cookeo, thermomix, monsieur_cuisine, companion, airfryer, slow_cooker, pressure_cooker, barbecue, plancha
+time:
+  weekday_max_min: 30   # max total time (prep + cooking), minutes
+  weekend_max_min: 90
+product_rules:          # per category; keys: store_brand_ok, organic, preferred_brand, cheapest, max_price_per_kg
+  default: { store_brand_ok: true }
+store:
+  provider: carrefour   # carrefour | list
+  mode: drive           # drive | delivery
+  store_id: ""
+recipes:
+  sources: [marmiton]   # ordered; first is primary
+plan:
+  avoid_repeat_weeks: 3

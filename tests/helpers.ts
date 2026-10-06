@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -7,4 +7,19 @@ export function useTempRoot(): string {
   const dir = mkdtempSync(join(tmpdir(), 'groceries-'));
   process.env.GROCERIES_ROOT = dir;
   return dir;
+}
+
+export const VALID_PROFILE_YAML = `household: { adults: 2, children: [{ age: 6 }], servings: 4 }
+food: { diet: omnivore, exclusions: [champignon], preferences: "likes Asian food" }
+tools: [oven, hob]
+time: { weekday_max_min: 30, weekend_max_min: 90 }
+product_rules: { default: { store_brand_ok: true }, fruits_legumes: { organic: true } }
+store: { provider: carrefour, mode: drive, store_id: "123" }
+recipes: { sources: [marmiton] }
+plan: { avoid_repeat_weeks: 3 }
+`;
+
+/** Writes VALID_PROFILE_YAML into the current GROCERIES_ROOT. */
+export function writeValidProfile(root: string, yaml = VALID_PROFILE_YAML): void {
+  writeFileSync(join(root, 'profile.yml'), yaml);
 }
