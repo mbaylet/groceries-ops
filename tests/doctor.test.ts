@@ -31,14 +31,19 @@ test('nodeVersionOk', () => {
   assert.ok(!nodeVersionOk('v20.11.0'));
 });
 
-test('fresh install: template copied, onboarding needed, no login probe', async () => {
+test('fresh install: profile comes first — no store checks at all', async () => {
   let probed = false;
-  const r = await runDoctor(deps({ probe: async () => { probed = true; return { isError: false, text: '' }; } }), { offline: false });
+  let listed = false;
+  const r = await runDoctor(deps({
+    probe: async () => { probed = true; return { isError: false, text: '' }; },
+    listMcpServers: async () => { listed = true; return ''; },
+  }), { offline: false });
   assert.ok(existsSync(join(root, 'profile.yml')));
   assert.equal(r.onboardingNeeded, true);
   assert.equal(r.blocking, false);
   assert.equal(check(r, 'login'), undefined);
-  assert.ok(!probed);
+  assert.equal(check(r, 'mcp-registered'), undefined);
+  assert.ok(!probed && !listed);
 });
 
 test('healthy setup', async () => {

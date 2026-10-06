@@ -7,9 +7,11 @@ grocery store cart. **It never checks out.** Entry point: the `/groceries` skill
 
 Run silently: `node scripts/doctor.ts --json`
 
-- `onboardingNeeded: true` → run `modes/onboarding.md` before anything else.
+- `onboardingNeeded: true` → run `modes/onboarding.md` before anything else — including an explicitly
+  requested mode such as setup. Profile creation is always the very first step; nothing touches the
+  store (login, search, cart) until the profile is valid.
 - `blocking: true` → show each failing check (message + fix) in the user's language; do not run
-  plan or add until fixed. Onboarding, habits and setup still work.
+  plan or add until fixed. Onboarding, habits and setup still work (once the profile exists).
 - `planEnabled: false` → plan mode is unavailable; say so if the user asks for it. Add mode works.
 - Otherwise say nothing about the doctor.
 

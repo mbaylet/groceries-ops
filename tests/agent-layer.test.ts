@@ -37,3 +37,11 @@ test('capability references are known', () => {
 test('CLAUDE.md imports AGENTS.md', () => {
   assert.match(read('CLAUDE.md'), /@AGENTS\.md/);
 });
+
+test('profile comes first: router and setup gate on onboarding', () => {
+  assert.match(read('.claude/skills/groceries/SKILL.md'), /onboardingNeeded[\s\S]*modes\/onboarding\.md/);
+  const setup = read('modes/setup.md');
+  const gate = setup.indexOf('onboardingNeeded');
+  assert.ok(gate >= 0, 'setup.md must check onboardingNeeded');
+  assert.ok(gate < setup.indexOf('capability:session_check'), 'setup.md must gate before the login check');
+});

@@ -1,5 +1,7 @@
 # Mode: setup — check everything works
 
+0. **Profile first:** if `node scripts/doctor.ts --json --offline` reports `onboardingNeeded: true`, stop
+   here and run `modes/onboarding.md`; come back to setup only once the profile is valid.
 1. `node scripts/doctor.ts --json`. Present each check that is not `pass`, with its fix, in the user's
    language. Offer to apply fixes that only touch system files (e.g. a missing deny entry).
 2. **Login** (MCP provider): `capability:session_check` through your own MCP connection — this also

@@ -86,7 +86,7 @@ groceries-ops/
 ## 3. Router and session start
 
 `AGENTS.md` instructs: on the first message of every session run `node scripts/doctor.ts --json`.
-- `onboardingNeeded: true` (no `profile.yml`, or still equal to the template) → run `modes/onboarding.md` before anything else.
+- `onboardingNeeded: true` (no `profile.yml`, or still equal to the template) → run `modes/onboarding.md` before anything else, including an explicitly requested mode (the router gates every mode on it). Profile creation is always the first step: the doctor runs no store checks (MCP registration, login) and no mode touches the store until the profile is valid.
 - Any blocking failure (e.g. missing deny entry) → report it and refuse plan/add until fixed.
 
 `SKILL.md` routes `$mode`:

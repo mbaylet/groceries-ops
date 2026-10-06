@@ -22,6 +22,11 @@ Resolve every path below against it. Follow `AGENTS.md` (hard rules, language ru
 | `habits` | `modes/habits.md` |
 | `setup` | `modes/setup.md` |
 
+**Profile comes first.** Before any mode other than `onboarding`, run
+`node scripts/doctor.ts --json --offline`. If `onboardingNeeded` is true, say in one line that the
+profile must be created first and run `modes/onboarding.md` instead of the requested mode — no store
+login, search or cart action happens before the profile exists. Resume the requested mode afterwards.
+
 Before any mode: read `profile.yml` (if valid) and the active provider file
 `providers/{store.provider}.yml`.
 

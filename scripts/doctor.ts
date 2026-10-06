@@ -70,7 +70,10 @@ export async function runDoctor(deps: DoctorDeps, opts: { offline: boolean }): P
     if (missing.length === 0) add('checkout-deny', 'pass', 'All checkout tools are denied', true);
     else add('checkout-deny', 'fail', `Checkout tools not denied: ${missing.join(', ')}`, true, 'Add them to permissions.deny in .claude/settings.json');
 
-    if (opts.offline) add('mcp-registered', 'unknown', 'skipped (--offline)', false);
+    // Profile comes first: no store checks until onboarding has produced a valid profile.
+    if (profile.status !== 'ok') {
+      // skipped silently — onboarding runs before anything touches the store
+    } else if (opts.offline) add('mcp-registered', 'unknown', 'skipped (--offline)', false);
     else {
       try {
         const out = await deps.listMcpServers();
