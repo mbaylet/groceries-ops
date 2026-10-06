@@ -28,7 +28,7 @@ A personal Claude Code skill that runs weekly grocery shopping end to end — up
 - Single user, local Claude Code; not a product for others.
 - New standalone repo at `~/Documents/groceries-ops`.
 - Conversation language follows the user: Claude replies in whatever language the user writes in (French expected), with no language setting to configure. Recipe and product names stay as the source/store provides them.
-- Scripts in TypeScript, executed directly by Node ≥ 22.6 (type stripping; user has Node 24). No build step. `tsc --noEmit` for type checking.
+- Scripts in TypeScript, executed directly by Node ≥ 22.18 (type stripping enabled by default; user has Node 24). No build step. `tsc --noEmit` for type checking.
 
 ### Non-goals (v1)
 
@@ -219,7 +219,11 @@ mcp_server: carrefour-drive
 install: "claude mcp add carrefour-drive -- npx -y github:maximeallanic/CarrefourDriveMCP"
 spawn: { command: npx, args: ["-y", "github:maximeallanic/CarrefourDriveMCP"] }
 capabilities:
-  session_check: carrefour_session_status     # called with { verify: true }
+  session_check:
+    tool: carrefour_session_status
+    args: { verify: true }
+    ok_pattern: "Verification: HTTP 2\\d\\d"          # from the server's source (session.tools.ts)
+    expired_pattern: "Verification: FAILED|No Carrefour session"   # isError:true also = expired
   login: carrefour_browser_login
   search: search_products
   add_to_cart: add_item_to_cart_by_ean
@@ -274,7 +278,7 @@ Output: human checklist by default, `--json` → `{ onboardingNeeded, checks: [{
 
 | Check | Blocking? |
 |---|---|
-| Node ≥ 22.6 | yes |
+| Node ≥ 22.18 | yes |
 | `profile.yml` exists, not template, valid schema (names bad field) | → onboarding |
 | `data/` writable | yes |
 | Provider file exists and parses | yes |
@@ -316,4 +320,4 @@ Login check caveat: if the server's Chromium profile is locked by the instance C
 1. `add_item_to_cart` with `counter: 0` removes a cart line (`clear_line`).
 2. Doctor spawning a second MCP server instance while Claude Code's instance runs (Chromium profile lock).
 3. Exact argument shapes of `search_products`, `get_cart`, `get_last_orders` responses (EAN, price, availability fields).
-4. Marmiton search: whether its search results page is fetchable/parseable (implement `search`) or candidates come from WebSearch via `searchHint`.
+4. ~~Marmiton search~~ — resolved 2026-10-06: `recherche.aspx?aqt=<query>` returns an `ItemList` JSON-LD with recipe URLs, so the Marmiton source implements `search`.
