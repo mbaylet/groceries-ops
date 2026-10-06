@@ -1,0 +1,5 @@
+node_modules/
+profile.yml
+data/
+*.tmp
+.superpowers/
