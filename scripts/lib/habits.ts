@@ -4,6 +4,7 @@ import { paths } from './paths.ts';
 import { readYaml, writeYaml } from './yaml-io.ts';
 
 export type PurchaseStatus = 'confirmed' | 'pending';
+export type HabitMode = 'auto' | 'ask' | 'track';
 export interface Purchase { date: string; status: PurchaseStatus }
 export interface Habit {
   key: string;
@@ -12,7 +13,8 @@ export interface Habit {
   purchases: Purchase[];
   interval_days?: number;
   interval_override?: number;
-  mode: 'auto' | 'ask';
+  /** auto: added when due · ask: asked when due · track: learned from store history, never asked until promoted */
+  mode: HabitMode;
   last_asked?: string;
   declines_in_row: number;
 }
@@ -42,13 +44,13 @@ export function findHabit(f: HabitsFile, item: ItemRef): Habit | undefined {
   );
 }
 
-function getOrCreate(f: HabitsFile, item: ItemRef): { habit: Habit; created: boolean } {
+function getOrCreate(f: HabitsFile, item: ItemRef, mode: HabitMode): { habit: Habit; created: boolean } {
   const found = findHabit(f, item);
   if (found) {
     if (item.ean && !found.ean) found.ean = item.ean;
     return { habit: found, created: false };
   }
-  const habit: Habit = { key: habitKey(item), name: item.name, purchases: [], mode: 'ask', declines_in_row: 0 };
+  const habit: Habit = { key: habitKey(item), name: item.name, purchases: [], mode, declines_in_row: 0 };
   if (item.ean) habit.ean = item.ean;
   f.habits.push(habit);
   return { habit, created: true };
@@ -105,7 +107,7 @@ export function dueItems(f: HabitsFile, today: string): { auto: Habit[]; ask: Ha
 
 export function recordPurchases(f: HabitsFile, items: ItemRef[], date: string, status: PurchaseStatus): void {
   for (const item of items) {
-    const { habit } = getOrCreate(f, item);
+    const { habit } = getOrCreate(f, item, 'ask');
     if (!habit.purchases.some((p) => p.date === date)) habit.purchases.push({ date, status });
     recompute(habit);
   }
@@ -135,7 +137,7 @@ export function reconcile(f: HabitsFile, orders: Order[], today: string): { conf
   let added = 0;
   for (const order of [...orders].sort((a, b) => a.date.localeCompare(b.date))) {
     for (const item of order.items) {
-      const { habit, created } = getOrCreate(f, item);
+      const { habit, created } = getOrCreate(f, item, 'track');
       if (created) added++;
       if (habit.purchases.some((p) => p.status === 'confirmed' && p.date === order.date)) continue;
       const pending = habit.purchases.findIndex((p) => {

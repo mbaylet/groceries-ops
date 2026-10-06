@@ -11,7 +11,7 @@ const USAGE = `usage (all accept --today YYYY-MM-DD):
   habits.ts record <items.json|-> [--confirmed]     items: [{ "name": "...", "ean": "..." }]
   habits.ts answer <key> yes|no
   habits.ts reconcile <orders.json|->              orders: [{ "date": "YYYY-MM-DD", "items": [...] }]
-  habits.ts set-mode <key> auto|ask
+  habits.ts set-mode <key> auto|ask|track
   habits.ts set-interval <key> <days>
   habits.ts remove <key>`;
 
@@ -62,7 +62,7 @@ async function main(): Promise<void> {
       return;
     }
     case 'set-mode':
-      if (!a || (b !== 'auto' && b !== 'ask')) throw new Error(USAGE);
+      if (!a || (b !== 'auto' && b !== 'ask' && b !== 'track')) throw new Error(USAGE);
       find(f, a).mode = b;
       saveHabits(f);
       printJson(view(find(f, a), day));

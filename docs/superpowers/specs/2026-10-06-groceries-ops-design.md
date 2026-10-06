@@ -197,7 +197,7 @@ Packs round up to cover the needed quantity.
 
 ## 7. Habits (`habits.ts`, `data/habits.yml`)
 
-Per item: `key`, `name`, `ean?`, `purchases[]` (dates, `confirmed` flag), `interval_days`, `mode` (`auto|ask`), `last_asked`, `declines_in_row`.
+Per item: `key`, `name`, `ean?`, `purchases[]` (dates, `confirmed` flag), `interval_days`, `mode` (`auto|ask|track`; items learned only from store history start as `track` — learned, never asked — until the user promotes them; items bought through the skill start as `ask`), `last_asked`, `declines_in_row`.
 
 Rules (all in code):
 - **Interval** = median gap between confirmed purchases (needs ≥ 2).

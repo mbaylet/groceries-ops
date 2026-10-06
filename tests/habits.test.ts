@@ -85,7 +85,21 @@ test('record + reconcile: confirm, drop stale pending, add external', () => {
   const bananas = f.habits.find((h) => h.ean === '111');
   assert.deepEqual(bananas?.purchases, [{ date: '2026-10-07', status: 'confirmed' }]);
   assert.deepEqual(f.habits.find((h) => h.name === 'Yaourts')?.purchases, []);
-  assert.equal(f.habits.find((h) => h.ean === '222')?.mode, 'ask');
+  assert.equal(f.habits.find((h) => h.ean === '222')?.mode, 'track');
+  assert.equal(f.habits.find((h) => h.name === 'Lait')?.mode, 'ask');
+});
+
+test('history-learned items are tracked silently until promoted', () => {
+  const f: HabitsFile = { habits: [] };
+  reconcile(f, [
+    { date: '2026-08-01', items: [{ name: 'Sauce barbecue' }] },
+    { date: '2026-08-22', items: [{ name: 'Sauce barbecue' }] },
+  ], '2026-10-06');
+  const h = f.habits[0];
+  assert.equal(h.mode, 'track');
+  assert.ok(isDue(h, '2026-10-06'));
+  assert.deepEqual(dueItems(f, '2026-10-06'), { auto: [], ask: [] });
+  assert.deepEqual(proposals(f, '2026-10-06').map((p) => p.mode), ['track']);
 });
 
 test('name matching ignores case, accents and plurals', () => {

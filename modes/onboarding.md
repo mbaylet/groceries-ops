@@ -21,8 +21,8 @@ current value and ask what to change instead of starting over.
    `modes/setup.md` now.
 7. **Habit bootstrap** (MCP provider only, ask consent first): run "Order sync" from
    `modes/_cart.md` (also read `capability:frequent`), then `node scripts/habits.ts propose`. Present
-   the items with an interval, grouped: proposed `auto` (≈ weekly) vs `ask`. Apply only what the user
-   confirms: `node scripts/habits.ts set-mode <key> auto|ask`, `node scripts/habits.ts set-interval <key> <days>`.
+   the items with an interval, grouped: proposed `auto` (≈ weekly) vs `ask`. Everything learned from
+   history starts as `track` (never asked); promote only what the user confirms: `node scripts/habits.ts set-mode <key> auto|ask`, `node scripts/habits.ts set-interval <key> <days>`.
 
 After each section, write `profile.yml` and run `node scripts/doctor.ts --json --offline`; fix any
 `profile` error before moving on. Finish with a 5-line summary of the profile and suggest
