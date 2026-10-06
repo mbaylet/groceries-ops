@@ -27,7 +27,7 @@ A personal Claude Code skill that runs weekly grocery shopping end to end — up
 
 - Single user, local Claude Code; not a product for others.
 - New standalone repo at `~/Documents/groceries-ops`.
-- Conversation in English; recipes and product names stay French.
+- Conversation language follows the user: Claude replies in whatever language the user writes in (French expected), with no language setting to configure. Recipe and product names stay as the source/store provides them.
 - Scripts in TypeScript, executed directly by Node ≥ 22.6 (type stripping; user has Node 24). No build step. `tsc --noEmit` for type checking.
 
 ### Non-goals (v1)
@@ -101,6 +101,8 @@ groceries-ops/
 | `setup` | `modes/setup.md` |
 
 Every mode loads `profile.yml` and the active provider file (`providers/{profile.store.provider}.yml`).
+
+**Language rule (in `AGENTS.md`, applies to every mode):** all user-facing text — questions, shortlists, summaries, run logs in `data/runs/` — is written in the language the user is using in the conversation. Mode files, scripts and their messages are written in English and are never shown verbatim; script output is JSON that Claude renders in the user's language. Quoted example phrasings in this spec and in mode files are illustrative, not fixed strings. Recipe names, ingredient lines and product labels are kept in their original language.
 
 ## 4. Onboarding and `profile.yml`
 
