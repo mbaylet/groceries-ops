@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "deny": [
+      "mcp__carrefour-drive__submit_checkout_payment",
+      "mcp__carrefour-drive__validate_checkout_summary",
+      "mcp__carrefour-drive__validate_checkout_slot",
+      "mcp__carrefour-drive__select_cart_delivery_slot",
+      "mcp__carrefour-drive__apply_promo_code_to_cart"
+    ]
+  }
+}

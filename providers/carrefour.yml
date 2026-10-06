@@ -1,0 +1,31 @@
+id: carrefour
+label: Carrefour Drive
+kind: mcp
+mcp_server: carrefour-drive
+install: "claude mcp add carrefour-drive -- npx -y github:maximeallanic/CarrefourDriveMCP"
+spawn:
+  command: npx
+  args: ["-y", "github:maximeallanic/CarrefourDriveMCP"]
+notes: >-
+  Products are identified by EAN. add_item_to_cart_by_ean and add_item_to_cart need the
+  basket service from get_cart (basketServiceId, subBasketType e.g. drive_clcv) — read the
+  cart first and reuse its values.
+capabilities:
+  session_check:
+    tool: carrefour_session_status
+    args: { verify: true }
+    ok_pattern: "Verification: HTTP 2\\d\\d"
+    expired_pattern: "Verification: FAILED|No Carrefour session"
+  login: carrefour_browser_login
+  search: search_products
+  add_to_cart: add_item_to_cart_by_ean
+  set_quantity: add_item_to_cart
+  read_cart: get_cart
+  order_history: [get_last_orders, get_loyalty_order_receipts]
+  frequent: get_frequent_purchases
+forbidden:
+  - submit_checkout_payment
+  - validate_checkout_summary
+  - validate_checkout_slot
+  - select_cart_delivery_slot
+  - apply_promo_code_to_cart
