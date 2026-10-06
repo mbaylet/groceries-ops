@@ -1,0 +1,39 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { REPO_ROOT } from '../scripts/lib/paths.ts';
+import { CAPABILITY_NAMES, listProviderIds, loadProvider } from '../scripts/lib/provider.ts';
+
+const read = (p: string) => readFileSync(join(REPO_ROOT, p), 'utf8');
+const modeFiles = readdirSync(join(REPO_ROOT, 'modes')).map((f) => `modes/${f}`);
+const agentFiles = ['AGENTS.md', '.claude/skills/groceries/SKILL.md', ...modeFiles];
+
+test('router references existing mode files', () => {
+  const refs = [...read('.claude/skills/groceries/SKILL.md').matchAll(/`(modes\/[a-z_-]+\.md)`/g)].map((m) => m[1]);
+  for (const m of ['onboarding', 'plan', 'add', 'habits', 'setup', '_cart']) assert.ok(refs.includes(`modes/${m}.md`), m);
+  for (const r of refs) assert.ok(existsSync(join(REPO_ROOT, r)), r);
+});
+
+test('every referenced script exists', () => {
+  for (const f of agentFiles)
+    for (const m of read(f).matchAll(/node (scripts\/[a-z-]+\.ts)/g)) assert.ok(existsSync(join(REPO_ROOT, m[1])), `${f}: ${m[1]}`);
+});
+
+test('agent instructions never name a forbidden tool', () => {
+  for (const id of listProviderIds()) {
+    const p = loadProvider(id);
+    if (p.kind !== 'mcp') continue;
+    for (const f of agentFiles) for (const tool of p.forbidden) assert.ok(!read(f).includes(tool), `${f} mentions ${tool}`);
+  }
+});
+
+test('capability references are known', () => {
+  const known = new Set<string>(CAPABILITY_NAMES);
+  for (const f of agentFiles)
+    for (const m of read(f).matchAll(/capability:([a-z_]+)/g)) assert.ok(known.has(m[1]), `${f}: capability:${m[1]}`);
+});
+
+test('CLAUDE.md imports AGENTS.md', () => {
+  assert.match(read('CLAUDE.md'), /@AGENTS\.md/);
+});
