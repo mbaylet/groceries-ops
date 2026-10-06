@@ -9,7 +9,8 @@ Store actions are written `capability:<name>`; resolve them through the provider
    `ok_pattern` / `expired_pattern` (an error result means expired). Expired → stop, offer to run
    `capability:login` (the user signs in in the browser window), then resume.
 2. `capability:read_cart`. If it has items: list them (name × quantity) and ask whether to empty the
-   cart before starting. Yes → `capability:set_quantity` with quantity 0 for each line, then
+   cart before starting. Yes → `capability:remove` for each line (no `remove` in the provider →
+   `capability:set_quantity` with quantity 0), then
    `capability:read_cart` to confirm it is empty. No → stop the run; nothing gets mixed.
 3. Order sync (below).
 
@@ -30,6 +31,9 @@ For each thing to buy, first hit wins:
 3. **Search + rules:** `capability:search` with a short French product query. Category = the closest
    key in `profile.product_rules` (else `default`). Apply, in order: `preferred_brand`, `organic`,
    `store_brand_ok`, `max_price_per_kg`, `cheapest`. Skip unavailable products.
+   Query the plain ingredient ("riz", not "riz sachets cuisson 8 min"): a convenience format named
+   in the recipe line (sachet, micro-ondes, express) is not a requirement. Compare candidates by
+   price per kg/L, organic included, and state the comparison in the review's "why" column.
 
 Quantity: the fewest packs covering the needed amount (round up). Counts without a unit (3 oignons)
 → loose items, or the smallest pack covering the count.
@@ -48,7 +52,8 @@ line; re-resolve it. When the user picks a specific product for an ingredient, r
 
 1. Add each approved line with `capability:add_to_cart`. Collect failures; keep going.
 2. `capability:read_cart`; compare with the approved lines and report any difference.
-3. To lower or remove a line later in the run, use `capability:set_quantity` (0 removes).
+3. To remove a line later in the run, use `capability:remove` (else `capability:set_quantity` with 0).
+   To lower a quantity, follow the provider `notes`.
 4. End with: the cart is ready — checkout is the user's.
 
 ## Record

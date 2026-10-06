@@ -3,7 +3,7 @@ import YAML from 'yaml';
 import { paths } from './paths.ts';
 
 export const CAPABILITY_NAMES = [
-  'session_check', 'login', 'search', 'add_to_cart', 'set_quantity', 'read_cart', 'order_history', 'frequent',
+  'session_check', 'login', 'search', 'add_to_cart', 'set_quantity', 'remove', 'read_cart', 'order_history', 'frequent',
 ] as const;
 
 export interface SessionCheck { tool: string; args: Record<string, unknown>; ok_pattern: string; expired_pattern: string }
@@ -21,6 +21,8 @@ export interface McpProvider {
     search: string;
     add_to_cart: string;
     set_quantity: string;
+    /** removes the whole line; when absent, set_quantity with 0 is used */
+    remove?: string;
     read_cart: string;
     order_history: string[];
     frequent?: string;
@@ -63,6 +65,7 @@ export function validateProvider(raw: unknown, id: string): { ok: true; provider
     else if (forbidden.includes(v)) err(path, `"${v}" is forbidden`);
   };
   for (const k of ['login', 'search', 'add_to_cart', 'set_quantity', 'read_cart'] as const) tool(`capabilities.${k}`, caps[k]);
+  tool('capabilities.remove', caps.remove, true);
   tool('capabilities.frequent', caps.frequent, true);
   if (!Array.isArray(caps.order_history) || caps.order_history.length === 0) err('capabilities.order_history', 'must be a non-empty list');
   else caps.order_history.forEach((t, i) => tool(`capabilities.order_history[${i}]`, t));

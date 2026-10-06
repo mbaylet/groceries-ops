@@ -41,6 +41,7 @@ test('validation rejects a forbidden tool used as a capability, and bad regexes'
   raw.capabilities.add_to_cart = 'submit_checkout_payment';
   raw.capabilities.session_check.ok_pattern = '(';
   delete raw.capabilities.read_cart;
+  raw.capabilities.remove = 42;
   const v = validateProvider(raw, 'carrefour');
   assert.ok(!v.ok);
   if (!v.ok) {
@@ -48,5 +49,6 @@ test('validation rejects a forbidden tool used as a capability, and bad regexes'
     assert.match(all, /capabilities\.add_to_cart: "submit_checkout_payment" is forbidden/);
     assert.match(all, /ok_pattern: invalid regex/);
     assert.match(all, /capabilities\.read_cart: must be a tool name/);
+    assert.match(all, /capabilities\.remove: must be a tool name/);
   }
 });

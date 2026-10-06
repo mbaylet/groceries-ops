@@ -7,9 +7,15 @@ spawn:
   command: npx
   args: ["-y", "github:maximeallanic/CarrefourDriveMCP"]
 notes: >-
-  Products are identified by EAN. add_item_to_cart_by_ean and add_item_to_cart need the
-  basket service from get_cart (basketServiceId, subBasketType e.g. drive_clcv) — read the
-  cart first and reuse its values.
+  Products are identified by EAN. Every cart call takes basketServiceId = the cart's
+  facilityServiceId (e.g. 0345-150-711) and subBasketType = the cart's type (drive_clcv).
+  add_item_to_cart (PATCH /api/cart) sets a line: counter = quantity, and always pageType: search,
+  pageId: search — without them the call returns the cart unchanged. counter 0 does NOT remove.
+  add_item_to_cart_by_ean (PATCH /api/cart/items) is misnamed: it REMOVES the whole line (all
+  units); call it with pageType: basket, pageId: basket. To lower a quantity, remove the line then
+  set it again with add_item_to_cart. Verify each write by the cart total in the response;
+  responses are truncated past CARREFOUR_MAX_RESPONSE_CHARS. The carrefour.fr page may show a
+  stale cart until reloaded.
 capabilities:
   session_check:
     tool: carrefour_session_status
@@ -18,8 +24,9 @@ capabilities:
     expired_pattern: "Verification: FAILED|No Carrefour session"
   login: carrefour_browser_login
   search: search_products
-  add_to_cart: add_item_to_cart_by_ean
+  add_to_cart: add_item_to_cart
   set_quantity: add_item_to_cart
+  remove: add_item_to_cart_by_ean
   read_cart: get_cart
   order_history: [get_last_orders, get_loyalty_order_receipts]
   frequent: get_frequent_purchases
