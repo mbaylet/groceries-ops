@@ -1,0 +1,103 @@
+import { test, beforeEach } from 'node:test';
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { nodeVersionOk, runDoctor, type DoctorDeps } from '../scripts/doctor.ts';
+import { paths } from '../scripts/lib/paths.ts';
+import { useTempRoot, writeValidProfile } from './helpers.ts';
+
+let root = '';
+beforeEach(() => { root = useTempRoot(); });
+
+const recipeHtml = readFileSync(join(paths.fixtures('marmiton'), 'recipe-blanquette.html'), 'utf8');
+const settings = JSON.parse(readFileSync(paths.settings(), 'utf8'));
+const deps = (over: Partial<DoctorDeps> = {}): DoctorDeps => ({
+  nodeVersion: 'v24.2.0',
+  listMcpServers: async () => 'carrefour-drive: npx -y github:maximeallanic/CarrefourDriveMCP - ✓ Connected',
+  fetcher: async () => recipeHtml,
+  probe: async () => ({ isError: false, text: 'Session present\nVerification: HTTP 200' }),
+  readSettings: () => settings,
+  readFixture: () => recipeHtml,
+  ...over,
+});
+const check = (r: Awaited<ReturnType<typeof runDoctor>>, id: string) => r.checks.find((c) => c.id === id);
+
+test('nodeVersionOk', () => {
+  assert.ok(nodeVersionOk('v24.2.0'));
+  assert.ok(nodeVersionOk('v22.18.0'));
+  assert.ok(nodeVersionOk('v23.6.1'));
+  assert.ok(!nodeVersionOk('v22.6.0'));
+  assert.ok(!nodeVersionOk('v23.5.0'));
+  assert.ok(!nodeVersionOk('v20.11.0'));
+});
+
+test('fresh install: template copied, onboarding needed, no login probe', async () => {
+  let probed = false;
+  const r = await runDoctor(deps({ probe: async () => { probed = true; return { isError: false, text: '' }; } }), { offline: false });
+  assert.ok(existsSync(join(root, 'profile.yml')));
+  assert.equal(r.onboardingNeeded, true);
+  assert.equal(r.blocking, false);
+  assert.equal(check(r, 'login'), undefined);
+  assert.ok(!probed);
+});
+
+test('healthy setup', async () => {
+  writeValidProfile(root);
+  const r = await runDoctor(deps(), { offline: false });
+  assert.equal(r.onboardingNeeded, false);
+  assert.equal(r.blocking, false);
+  assert.equal(r.planEnabled, true);
+  for (const c of r.checks) assert.equal(c.status, 'pass', `${c.id}: ${c.message}`);
+});
+
+test('invalid profile names the field', async () => {
+  writeValidProfile(root, 'household: { adults: 0 }\n');
+  const r = await runDoctor(deps(), { offline: true });
+  assert.equal(r.onboardingNeeded, true);
+  assert.match(check(r, 'profile')?.message ?? '', /household\.adults/);
+});
+
+test('missing deny entry blocks', async () => {
+  writeValidProfile(root);
+  const r = await runDoctor(deps({ readSettings: () => ({}) }), { offline: true });
+  assert.equal(check(r, 'checkout-deny')?.status, 'fail');
+  assert.equal(r.blocking, true);
+});
+
+test('expired login blocks; probe crash is unknown and non-blocking', async () => {
+  writeValidProfile(root);
+  const expired = await runDoctor(deps({ probe: async () => ({ isError: false, text: 'Verification: FAILED (HTTP 401)' }) }), { offline: false });
+  assert.equal(check(expired, 'login')?.status, 'fail');
+  assert.equal(expired.blocking, true);
+  const busy = await runDoctor(deps({ probe: async () => { throw new Error('profile locked'); } }), { offline: false });
+  assert.equal(check(busy, 'login')?.status, 'unknown');
+  assert.equal(busy.blocking, false);
+});
+
+test('claude CLI unavailable → unknown, not blocking; server not registered → blocking', async () => {
+  writeValidProfile(root);
+  const noCli = await runDoctor(deps({ listMcpServers: async () => { throw new Error('ENOENT'); } }), { offline: false });
+  assert.equal(check(noCli, 'mcp-registered')?.status, 'unknown');
+  assert.equal(noCli.blocking, false);
+  const missing = await runDoctor(deps({ listMcpServers: async () => 'other: x' }), { offline: false });
+  assert.equal(check(missing, 'mcp-registered')?.status, 'fail');
+  assert.match(check(missing, 'mcp-registered')?.fix ?? '', /claude mcp add carrefour-drive/);
+});
+
+test('recipe source down → plan disabled, not blocking', async () => {
+  writeValidProfile(root);
+  const r = await runDoctor(deps({ fetcher: async () => { throw new Error('HTTP 403'); } }), { offline: false });
+  assert.equal(check(r, 'recipe-source:marmiton')?.status, 'warn');
+  assert.equal(r.planEnabled, false);
+  assert.equal(check(r, 'plan-mode')?.status, 'fail');
+  assert.equal(r.blocking, false);
+});
+
+test('old node blocks; offline skips live checks', async () => {
+  writeValidProfile(root);
+  const r = await runDoctor(deps({ nodeVersion: 'v20.0.0' }), { offline: true });
+  assert.equal(r.blocking, true);
+  assert.equal(check(r, 'login'), undefined);
+  assert.equal(check(r, 'mcp-registered')?.status, 'unknown');
+  assert.equal(check(r, 'recipe-source:marmiton')?.status, 'pass');
+});
