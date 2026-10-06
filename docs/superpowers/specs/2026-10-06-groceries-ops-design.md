@@ -9,10 +9,11 @@
 A personal Claude Code skill that runs weekly grocery shopping end to end — up to, but never including, checkout:
 
 - Onboarding conversation that builds a household profile (people, food preferences, kitchen tools, product rules, store).
-- A **plan** mode: propose real Marmiton recipes that fit the requested meal count, time budget, preferences and tools; let the user pick and swap; turn the chosen recipes into a cart.
+- A **plan** mode: propose real recipes from a pluggable **recipe source** (Marmiton first) that fit the requested meal count, time budget, preferences and tools; let the user pick and swap; turn the chosen recipes into a cart.
 - An **add** mode for ad-hoc items (toilet paper, bread, bananas…).
 - A **habits** memory that learns purchase frequency and either auto-adds (weekly items) or asks (less frequent items).
 - A **provider** layer so the grocery store (Carrefour now, Leclerc later) is swappable, driven through MCP servers.
+- A **recipe-source** layer, decoupled the same way: Marmiton now, other sites later, without touching filtering or modes.
 - A **doctor** script that validates the setup, including the store login.
 
 ### Success criteria
@@ -34,7 +35,7 @@ A personal Claude Code skill that runs weekly grocery shopping end to end — up
 - Recipe book / favourites / ratings workflow (recipe files are stored so this can be added later without migration).
 - Leclerc provider (the layer is designed for it; only Carrefour ships).
 - Booking pickup/delivery slots, promo codes, checkout.
-- Recipe sources other than Marmiton.
+- Recipe sources other than Marmiton (the layer is designed for them; only Marmiton ships).
 
 ## 2. Repository layout and layers
 
@@ -49,17 +50,21 @@ groceries-ops/
 ├── modes/
 │   ├── onboarding.md  plan.md  add.md  habits.md  setup.md
 ├── providers/
-│   └── carrefour.yml              # MCP server name, capability→tool map, forbidden tools
+│   └── carrefour.yml              # grocery provider: MCP server name, capability→tool map, forbidden tools
 ├── config/
 │   ├── profile.template.yml       # copied to profile.yml by doctor if missing
 │   └── staples.default.yml        # built-in pantry staple classifier (system layer)
 ├── scripts/
 │   ├── doctor.ts                  # setup check (human + --json)
-│   ├── marmiton.ts                # fetch → parse JSON-LD → filter → save recipe file
+│   ├── recipes.ts                 # CLI: sources | search | fetch | filter | save — source-agnostic
+│   ├── recipe-sources/
+│   │   ├── types.ts               # RecipeSource interface + normalized Recipe type
+│   │   ├── index.ts               # registry: id → source, URL → source
+│   │   └── marmiton.ts            # Marmiton implementation
 │   ├── habits.ts                  # intervals, due list, record purchases, reconcile orders
 │   ├── shopping-list.ts           # scale, merge, staple split, per-recipe contributions, drop/replace recipe
-│   └── lib/                       # paths, yaml io, profile schema, ISO-8601 duration, ingredient normalizer
-├── tests/                         # node:test; fixtures/ holds saved Marmiton HTML
+│   └── lib/                       # paths, yaml io, profile schema, ISO-8601 duration, ingredient normalizer, schema.org JSON-LD Recipe parser
+├── tests/                         # node:test; fixtures/<source>/ holds saved recipe HTML
 └── (user layer — gitignored)
     ├── profile.yml
     └── data/
@@ -127,6 +132,7 @@ product_rules:
   cafe: { preferred_brand: "..." }
   entretien: { cheapest: true }
 store: { provider: carrefour, mode: drive, store_id: "..." }
+recipes: { sources: [marmiton] }          # ordered; first is primary
 plan: { avoid_repeat_weeks: 3 }
 ```
 
@@ -142,10 +148,10 @@ plan: { avoid_repeat_weeks: 3 }
 One message: number of meals and time per meal (defaults from profile, overridable), optional wishes ("something with salmon").
 
 ### 5.3 Candidates
-- Claude searches Marmiton for ~3× the needed count, diversified.
-- `marmiton.ts fetch <url>` parses the `application/ld+json` `Recipe` node: `name`, `prepTime`, `cookTime`, `totalTime` (ISO-8601 durations, e.g. `PT2H15M`), `recipeYield` (e.g. `"4 personnes"`), `recipeIngredient[]`, `recipeInstructions`, `recipeCategory`, `keywords`, `aggregateRating`.
-- `marmiton.ts filter` rejects: `totalTime` > limit (missing `totalTime` → `prepTime + cookTime`; if neither, reject), any ingredient matching a hard exclusion (normalized: lowercase, accent-stripped, singularized, word-boundary match), recipes requiring a tool not in the profile (name/keywords/instructions mention e.g. Cookeo, Thermomix, airfryer, barbecue), recipes used within `avoid_repeat_weeks`.
-- Every fetched-and-kept recipe is saved to `data/recipes/<slug>.md` (YAML front matter: source URL, times, yield, raw ingredients, parsed ingredients, tags, rating, fetched_at, used_on[]; body: steps).
+- Claude gathers ~3× the needed count, diversified, from the profile's enabled recipe sources (§8.2) via `recipes.ts search <query>` (or the source's `searchHint` for WebSearch when the source has no `search`).
+- `recipes.ts fetch <url>` dispatches to the source that claims the URL and returns a normalized `Recipe` (§8.2). Modes and filters never see source-specific data.
+- `recipes.ts filter` (source-agnostic) rejects: `totalTime` > limit (missing `totalTime` → `prepTime + cookTime`; if neither, reject), any ingredient matching a hard exclusion (normalized: lowercase, accent-stripped, singularized, word-boundary match), recipes requiring a tool not in the profile (name/keywords/instructions mention e.g. Cookeo, Thermomix, airfryer, barbecue), recipes used within `avoid_repeat_weeks`.
+- Every fetched-and-kept recipe is saved to `data/recipes/<source>-<slug>.md` (YAML front matter: source id, source URL, times, yield, raw ingredients, parsed ingredients, tags, rating, fetched_at, used_on[]; body: steps).
 
 ### 5.4 Choose and swap loop
 Numbered shortlist (name, total time, servings, rating). User commands like "keep 1,3,4", "replace 2", "something without cream instead of 4", "more like 1". Replacements pass the same filter. Rejections are remembered for the session. Loop ends on "done".
@@ -201,7 +207,9 @@ Rules (all in code):
 
 `/groceries habits` lists items with interval/mode/next due and lets the user switch modes, edit intervals, or delete entries.
 
-## 8. Provider layer
+## 8. Provider layers
+
+### 8.1 Grocery providers
 
 ```yaml
 # providers/carrefour.yml
@@ -230,6 +238,34 @@ forbidden:
 - Fallback provider `list` (no MCP): writes an aisle-grouped shopping list to `data/runs/` instead of filling a cart.
 - MCP server used: [maximeallanic/CarrefourDriveMCP](https://github.com/maximeallanic/CarrefourDriveMCP) (MIT, private carrefour.fr API via a real Chromium session). Considered fragile; isolated behind this file.
 
+### 8.2 Recipe sources
+
+Same decoupling principle as grocery providers, but implemented as TypeScript modules (parsing is code, not a tool map).
+
+```ts
+// scripts/recipe-sources/types.ts
+export interface Recipe {
+  source: string; url: string; slug: string; name: string;
+  prepMin?: number; cookMin?: number; totalMin?: number;   // normalized minutes
+  servings?: number; ingredients: string[];                // raw lines
+  steps: string[]; tags: string[]; rating?: { value: number; count: number };
+}
+export interface RecipeSource {
+  id: string;                                // "marmiton"
+  label: string;
+  matches(url: string): boolean;             // claims a URL
+  search?(query: string, limit: number): Promise<string[]>;  // optional: recipe URLs
+  searchHint?: string;                       // fallback for Claude's WebSearch, e.g. "site:marmiton.org/recettes"
+  fetch(url: string): Promise<Recipe>;       // throws RecipeParseError
+  healthUrl: string;                         // live URL used by doctor
+}
+```
+
+- `recipe-sources/index.ts` is the only place that lists sources. Adding one = new module + registry line + fixtures.
+- `lib/jsonld-recipe.ts` holds the generic schema.org `Recipe` parser (ISO-8601 durations like `PT2H15M`, `recipeYield` like `"4 personnes"`, `recipeIngredient[]`, `recipeInstructions`, `keywords`, `aggregateRating`). Marmiton uses it; any JSON-LD site can reuse it, a non-JSON-LD site implements its own `fetch`.
+- `profile.recipes.sources` selects and orders enabled sources; unknown ids fail doctor validation.
+- Everything downstream — filter, shopping list, recipe files, modes — consumes only `Recipe`.
+
 ## 9. Doctor (`scripts/doctor.ts`)
 
 Output: human checklist by default, `--json` → `{ onboardingNeeded, checks: [{ id, status: pass|fail|warn|unknown, message, fix? }], blocking: bool }`.
@@ -242,7 +278,7 @@ Output: human checklist by default, `--json` → `{ onboardingNeeded, checks: [{
 | Provider file exists and parses | yes |
 | Every `forbidden` tool denied in `.claude/settings.json` | **yes** |
 | MCP server registered (`claude mcp list` contains `mcp_server`) | yes, prints `install` command |
-| Marmiton fixture parses + live recipe fetch parses | warn → plan mode disabled |
+| Each enabled recipe source: fixture parses + live `healthUrl` fetch parses | warn per source; all fail → plan mode disabled |
 | **Store login** (only if profile is valid): spawn MCP server from `spawn` via `@modelcontextprotocol/sdk` stdio client, call `session_check` with `{ verify: true }` | fail → "run `carrefour_browser_login`" |
 
 Login check caveat: if the server's Chromium profile is locked by the instance Claude Code already runs, report `unknown` ("server busy") rather than fail; `/groceries setup` then checks via Claude's own MCP connection. Timeout: 60 s (first run downloads Chromium).
@@ -259,14 +295,15 @@ Login check caveat: if the server's Chromium profile is locked by the instance C
 | `key` item unavailable | Replace recipe, drop/decrement its items (§5.6) |
 | Add fails mid-fill | Continue; same key/minor logic; report at end |
 | Cart ≠ plan after fill | Report diff |
-| Marmiton page unparseable | Skip, fetch replacement; 3 consecutive failures → stop, point to doctor |
+| Recipe page unparseable | Skip, fetch replacement (next enabled source if one is failing); 3 consecutive failures → stop, point to doctor |
 | Forbidden tool requested | Denied by settings; mode instructions never call them |
 
 ## 11. Testing
 
 `node --test` + `tsc --noEmit`, both via `npm test`.
 
-- **marmiton.ts** — saved HTML fixtures: ISO durations (`PT15M`, `PT2H15M`, missing totalTime), yield parsing (`"4 personnes"`, `"6 parts"`), exclusion normalization (`champignons` ↔ `champignon de Paris`, accents, plurals, no false positive on substrings), tool filter (Cookeo/Thermomix variants), repeat avoidance.
+- **lib/jsonld-recipe.ts + recipe-sources/marmiton.ts** — saved HTML fixtures: ISO durations (`PT15M`, `PT2H15M`, missing totalTime), yield parsing (`"4 personnes"`, `"6 parts"`), exclusion normalization (`champignons` ↔ `champignon de Paris`, accents, plurals, no false positive on substrings), tool filter (Cookeo/Thermomix variants), repeat avoidance.
+- **recipe-sources/index.ts** — URL dispatch, unknown source id, contract test every registered source must pass against its fixtures.
 - **shopping-list.ts** — scaling, unit-aware merge, per-recipe contributions, `drop` decrement (5 → 3) and removal, staple split.
 - **habits.ts** — synthetic dates: median interval, due threshold, auto proposal, decline snooze and ×1.5 widening, reconcile (confirm/drop pending, add external).
 - **doctor.ts** — temp dirs: valid profile, template profile, invalid field, missing deny entry; MCP spawn mocked.
@@ -277,4 +314,4 @@ Login check caveat: if the server's Chromium profile is locked by the instance C
 1. `add_item_to_cart` with `counter: 0` removes a cart line (`clear_line`).
 2. Doctor spawning a second MCP server instance while Claude Code's instance runs (Chromium profile lock).
 3. Exact argument shapes of `search_products`, `get_cart`, `get_last_orders` responses (EAN, price, availability fields).
-4. Marmiton search: whether a search results page is fetchable/parseable, or candidates come from WebSearch `site:marmiton.org`.
+4. Marmiton search: whether its search results page is fetchable/parseable (implement `search`) or candidates come from WebSearch via `searchHint`.
