@@ -1,0 +1,31 @@
+# Pantry staples (system default). Recipe ingredients matching these are never added
+# automatically; the user is asked once at the end of a run whether anything is missing.
+staples:
+  - sel
+  - poivre
+  - huile
+  - vinaigre
+  - farine
+  - sucre
+  - moutarde
+  - curry
+  - cumin
+  - paprika
+  - curcuma
+  - cannelle
+  - muscade
+  - gingembre moulu
+  - piment d espelette
+  - herbes de provence
+  - thym
+  - laurier
+  - origan
+  - bouillon
+  - fond de veau
+  - levure
+  - bicarbonate
+  - maizena
+  - fecule
+  - eau
+  - sauce soja
+  - miel
