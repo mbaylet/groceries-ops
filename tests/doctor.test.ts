@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { nodeVersionOk, runDoctor, type DoctorDeps } from '../scripts/doctor.ts';
 import { paths } from '../scripts/lib/paths.ts';
+import { loadProvider, type McpProvider } from '../scripts/lib/provider.ts';
 import { useTempRoot, writeValidProfile } from './helpers.ts';
 
 let root = '';
@@ -11,6 +12,12 @@ beforeEach(() => { root = useTempRoot(); });
 
 const recipeHtml = readFileSync(join(paths.fixtures('marmiton'), 'recipe-blanquette.html'), 'utf8');
 const settings = JSON.parse(readFileSync(paths.settings(), 'utf8'));
+const mapped: McpProvider = {
+  ...(loadProvider('carrefour') as McpProvider),
+  search: { tool: 'search_products', args: { q: '{query}' }, products_path: 'data',
+    fields: { ean: 'ean', title: 'title', price: 'price', unit_price: { path: 'per', parse: 'unit_price' }, available: 'ok' } },
+};
+const liveRaw = { data: [{ ean: '1', title: 'Lait', price: 1, per: '1,00 €/l', ok: true }] };
 const deps = (over: Partial<DoctorDeps> = {}): DoctorDeps => ({
   nodeVersion: 'v24.2.0',
   listMcpServers: async () => 'carrefour-drive: npx -y github:maximeallanic/CarrefourDriveMCP - ✓ Connected',
@@ -18,6 +25,9 @@ const deps = (over: Partial<DoctorDeps> = {}): DoctorDeps => ({
   probe: async () => ({ isError: false, text: 'Session present\nVerification: HTTP 200' }),
   readSettings: () => settings,
   readFixture: () => recipeHtml,
+  loadProvider: () => mapped,
+  liveSearch: async () => liveRaw,
+  readMappingFixtures: () => [],
   ...over,
 });
 const check = (r: Awaited<ReturnType<typeof runDoctor>>, id: string) => r.checks.find((c) => c.id === id);
@@ -43,6 +53,7 @@ test('fresh install: profile comes first — no store checks at all', async () =
   assert.equal(r.blocking, false);
   assert.equal(check(r, 'login'), undefined);
   assert.equal(check(r, 'mcp-registered'), undefined);
+  assert.equal(check(r, 'product-mapping'), undefined);
   assert.ok(!probed && !listed);
 });
 
@@ -105,4 +116,25 @@ test('old node blocks; offline skips live checks', async () => {
   assert.equal(check(r, 'login'), undefined);
   assert.equal(check(r, 'mcp-registered')?.status, 'unknown');
   assert.equal(check(r, 'recipe-source:marmiton')?.status, 'pass');
+});
+
+test('no product mapping yet → blocking product-mapping check', async () => {
+  writeValidProfile(root);
+  const r = await runDoctor(deps({ loadProvider: (id) => loadProvider(id) }), { offline: true });
+  assert.equal(check(r, 'product-mapping')?.status, 'fail');
+  assert.match(check(r, 'product-mapping')?.fix ?? '', /mapping discovery/);
+  assert.equal(r.blocking, true);
+});
+
+test('mapping health: offline fixtures and live search', async () => {
+  writeValidProfile(root);
+  const offline = await runDoctor(deps({ readMappingFixtures: () => [{ data: [{ ean: '1', title: 'x' }] }] }), { offline: true });
+  assert.equal(check(offline, 'product-mapping')?.status, 'fail');
+  assert.match(check(offline, 'product-mapping')?.message ?? '', /price, unit_price/);
+  const live = await runDoctor(deps(), { offline: false });
+  assert.equal(check(live, 'product-mapping')?.status, 'pass');
+  const liveBroken = await runDoctor(deps({ liveSearch: async () => ({ data: [] }) }), { offline: false });
+  assert.equal(check(liveBroken, 'product-mapping')?.status, 'fail');
+  const liveDown = await runDoctor(deps({ liveSearch: async () => { throw new Error('busy'); } }), { offline: false });
+  assert.equal(check(liveDown, 'product-mapping')?.status, 'unknown');
 });
