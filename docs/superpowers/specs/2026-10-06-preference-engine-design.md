@@ -28,10 +28,10 @@ Let each household express precise, free-form buying preferences ("Carrefour bra
 | **Hard constraints vs soft preferences** (constraint satisfaction + multi-attribute utility, MAUT) | `require` / `forbid` / `budget` with `strictness: hard` filter; everything else scores. |
 | **Closed-world for hard constraints** | A product whose attributes cannot prove compliance fails a hard rule (`on_unknown: reject`, configurable to `ask`). |
 | **Specificity and priority** (default logic, CSS-like specificity) | When rules conflict, the more specific `applies_to` wins; explicit `priority` breaks remaining ties. "Organic required for child food" beats "organic if ≤ +20 %". |
-| **Conditional, context-dependent preferences** (CP-nets) | `prefer` with `max_premium_pct` is evaluated *relative to the candidate set*: organic is preferred only if its price/kg ≤ (best compliant non-organic price/kg) × 1.20. |
+| **Conditional, context-dependent preferences** (CP-nets) | `prefer` with `max_premium_pct` is evaluated *relative to the candidate set* and applied **lexicographically**: if some product satisfying it costs ≤ (best compliant non-satisfying price per unit) × (1 + pct), only those products stay in the running ("I want organic when…" is a priority, not a bonus). Several capped preferences apply in specificity/priority order. |
 | **Pareto pruning** | Candidates dominated on every criterion (more expensive per kg **and** satisfying no more preferences) are dropped before scoring. |
-| **Normalised weighted scoring** (MAUT / weighted sum) | Criteria normalised to [0,1] across the candidate set, combined with profile weights. |
-| **Indifference and preference thresholds** (ELECTRE / PROMETHEE) | Price differences under `indifference_pct` count as equal (avoids flip-flopping between near-identical packs); a top-2 gap under `close_call_pct` is escalated to Claude. |
+| **Normalised weighted scoring** (MAUT / weighted sum) | Uncapped preferences, price and rating are normalised to [0,1] (price: ratio to the cheapest, stable when an outlier appears) and combined with profile weights. |
+| **Indifference and preference thresholds** (ELECTRE / PROMETHEE) | Price differences under `indifference_pct` count as equal (avoids flip-flopping between near-identical packs); a top-2 gap under `close_call_pct` is escalated to Claude **only when the two differ on satisfied preferences** (a real trade-off); otherwise the cheaper wins deterministically. |
 | **Status-quo bias** | A remembered choice or habit product that passes all hard rules wins if it is within the indifference threshold of the best score. |
 | **Ordered constraint relaxation** | If no candidate survives, soft-strict rules are relaxed in ascending `priority`, one at a time, and the relaxation is reported. `hard` rules are never relaxed — the item becomes `ask`. |
 | **Static rule validation** | Contradictions (same scope requires and forbids the same word), unreachable rules (scope matches nothing ever seen), bad thresholds are reported by `doctor`. |
@@ -124,11 +124,11 @@ Per item, all in the script:
 4. **Hard filter** — unavailable, failing hard `require`/`forbid`/`budget`; unknown attribute under `on_unknown: reject` (e.g. no unit price for a `max_price_per_kg` rule).
 5. **Relaxation** — if empty: relax `soft` rules by ascending priority until something survives; if still empty → decision `none` with the eliminations summary.
 6. **Pareto prune.**
-7. **Conditional preferences** — evaluate `max_premium_pct` against the surviving set.
-8. **Score** — normalised unit price (cheaper = higher), preference score (sum of satisfied weights / sum of applicable weights), rating if present; weighted by `scoring.weights`; unit prices within `indifference_pct` are treated as equal.
+7. **Conditional preferences** — for each `prefer` with `max_premium_pct` (most specific first): if any survivor satisfies it within the premium cap, keep only those survivors.
+8. **Score** — price score = cheapest / own price per unit (1 within `indifference_pct` of the cheapest), preference score = satisfied uncapped weights / applicable uncapped weights, rating / 5 (0.5 if absent); weighted by `scoring.weights`.
 9. **Status quo** — remembered choice (`product-choices.yml`) or habit EAN that survived step 4: chosen if within `indifference_pct` of the top score.
 10. **Quantity** — packs needed = ceil(need / pack size) when units are compatible; otherwise 1 pack and flag `qty-unknown`.
-11. **Decide** — `chosen` (clear winner), `close_call` (top-2 within `close_call_pct` → include top 3), `none` (nothing compliant), `ask` (hard rule could not be evaluated and `on_unknown: ask`).
+11. **Decide** — `chosen` (clear winner), `close_call` (top-2 within `close_call_pct` and differing on satisfied preferences → include top 3), `none` (nothing compliant), `ask` (hard rule could not be evaluated and `on_unknown: ask`).
 
 Output (all Claude reads):
 ```json
