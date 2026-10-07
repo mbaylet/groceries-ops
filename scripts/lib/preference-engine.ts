@@ -1,4 +1,4 @@
-import { containsPhrase } from './normalize.ts';
+import { containsPhrase, tokens } from './normalize.ts';
 import type { Product } from './product-mapper.ts';
 import { matcherWords, ruleKind, type Matcher, type Rule, type Scoring } from './rules.ts';
 
@@ -26,6 +26,16 @@ export interface Decision {
 }
 
 interface Cand { p: Product; softFails: string[]; unknowns: string[]; satisfied: string[]; pref: number; score: number }
+
+const STOPWORDS = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'a', 'au', 'aux', 'en', 'et', 'pour', 'avec', 'un', 'une']);
+
+/** Share of the item's significant words found in the product title (search results contain noise). */
+export function relevance(item: string, title: string): number {
+  const want = tokens(item).filter((t) => !STOPWORDS.has(t));
+  if (!want.length) return 1;
+  const have = new Set(tokens(title));
+  return want.filter((t) => have.has(t)).length / want.length;
+}
 
 const prio = (r: Rule) => r.priority ?? 0;
 const weightOf = (r: Rule) => r.weight ?? 0.1;
@@ -114,9 +124,18 @@ export function resolveItem(req: ItemRequest, products: Product[], rules: Rule[]
   const eliminated: Decision['eliminated'] = [];
   const flags = shadowed.map((id) => `shadowed:${id}`);
 
+  // 0. relevance: keep only the products that best match the requested item
+  const rel = new Map(products.map((p) => [p, relevance(req.item, p.title)]));
+  const bestRel = Math.max(0, ...rel.values());
+  const relevant = products.filter((p) => {
+    if (bestRel > 0 && rel.get(p) === bestRel) return true;
+    eliminated.push({ ean: p.ean, title: p.title, reasons: ['not-relevant'] });
+    return false;
+  });
+
   // 1. hard filter, collecting soft failures and unknowns
   const pool: Cand[] = [];
-  for (const p of products) {
+  for (const p of relevant) {
     if (!p.available) {
       eliminated.push({ ean: p.ean, title: p.title, reasons: ['unavailable'] });
       continue;
@@ -151,10 +170,15 @@ export function resolveItem(req: ItemRequest, products: Product[], rules: Rule[]
     return { ...base, status: 'none', why: [...new Set(eliminated.flatMap((e) => e.reasons))] };
   }
 
-  // Compare on price per unit when any candidate has one (a missing unit price then scores 0);
-  // fall back to the pack price only when no candidate has a unit price.
-  const useUnit = survivors.some((c) => c.p.unitPrice !== undefined);
-  const priceOf = (p: Product) => (useUnit ? p.unitPrice : p.price);
+  // Compare on price per unit, in the most common unit among candidates (ties: the store's first);
+  // a product priced in another unit, or without a unit price, then scores 0 on price.
+  // Fall back to the pack price only when no candidate has a unit price.
+  const unitCounts = new Map<string, number>();
+  for (const c of survivors) if (c.p.unitPrice !== undefined && c.p.unit) unitCounts.set(c.p.unit, (unitCounts.get(c.p.unit) ?? 0) + 1);
+  let refUnit: string | undefined;
+  for (const [u, n] of unitCounts) if (refUnit === undefined || n > unitCounts.get(refUnit)!) refUnit = u;
+  const unitPriceOf = (p: Product) => (refUnit !== undefined && p.unit === refUnit ? p.unitPrice : undefined);
+  const priceOf = (p: Product) => (refUnit !== undefined ? unitPriceOf(p) : p.price);
 
   // 3. capped preferences, lexicographic, most specific first
   const capped = prefers.filter((r) => r.max_premium_pct !== undefined).sort((a, b) => (outranks(a, b) ? -1 : outranks(b, a) ? 1 : 0));
@@ -166,11 +190,14 @@ export function resolveItem(req: ItemRequest, products: Product[], rules: Rule[]
       sat.forEach((c) => c.satisfied.push(r.id));
       continue;
     }
-    const bestRest = Math.min(...rest.map((c) => c.p.unitPrice).filter((v): v is number => v !== undefined));
+    const bestRest = Math.min(...rest.map((c) => unitPriceOf(c.p)).filter((v): v is number => v !== undefined));
     if (!Number.isFinite(bestRest)) continue;
-    const within = sat.filter((c) => c.p.unitPrice !== undefined && c.p.unitPrice <= bestRest * (1 + r.max_premium_pct! / 100));
+    const within = sat.filter((c) => {
+      const v = unitPriceOf(c.p);
+      return v !== undefined && v <= bestRest * (1 + r.max_premium_pct! / 100);
+    });
     if (!within.length) continue;
-    within.forEach((c) => c.satisfied.push(`${r.id}:${pct(Math.round((c.p.unitPrice! / bestRest - 1) * 100))}`));
+    within.forEach((c) => c.satisfied.push(`${r.id}:${pct(Math.round((unitPriceOf(c.p)! / bestRest - 1) * 100))}`));
     survivors = within;
   }
 

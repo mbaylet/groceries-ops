@@ -130,3 +130,22 @@ test('computePacks', () => {
   assert.deepEqual(computePacks({ qty: 2, unit: 'cas' }, P('x', 'x', 1, { packQty: 500, packUnit: 'g' })), { packs: 1, flag: 'qty-unknown' });
   assert.deepEqual(computePacks(undefined, P('x', 'x', 1)), { packs: 1 });
 });
+
+test('irrelevant search results never win (relevance to the requested item)', () => {
+  const d = resolveItem({ item: 'blanc de poulet' }, [
+    P('c', 'Chips saveur poulet', 8),
+    P('b', 'Blanc de poulet fermier plein air', 14),
+  ], rules, S);
+  assert.equal(d.choice?.ean, 'b');
+  assert.deepEqual(d.eliminated.find((e) => e.ean === 'c')?.reasons, ['not-relevant']);
+  assert.equal(resolveItem({ item: 'lait' }, [P('x', 'Biscuits chocolat', 0.4)], [], S).status, 'none');
+});
+
+test('prices in different units are never compared directly', () => {
+  const d = resolveItem({ item: 'bananes' }, [
+    P('k', 'Bananes', 1.99, { unit: 'kg' }),
+    P('p', 'Bananes x5', 0.3, { unit: 'piece' }),
+    P('k2', 'Bananes bio', 2.6, { unit: 'kg' }),
+  ], [], S);
+  assert.equal(d.choice?.ean, 'k');
+});
