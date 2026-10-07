@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import YAML from 'yaml';
 import {
-  classifySession, listProviderIds, loadProvider, mcpToolName, missingDenies, validateProvider, type McpProvider,
+  classifySession, listProviderIds, loadProvider, mappingReady, mcpToolName, missingDenies, validateProvider, type McpProvider,
 } from '../scripts/lib/provider.ts';
 import { paths } from '../scripts/lib/paths.ts';
 
@@ -50,5 +50,24 @@ test('validation rejects a forbidden tool used as a capability, and bad regexes'
     assert.match(all, /ok_pattern: invalid regex/);
     assert.match(all, /capabilities\.read_cart: must be a tool name/);
     assert.match(all, /capabilities\.remove: must be a tool name/);
+  }
+});
+
+test('search block: carrefour declares the tool; mapping not discovered yet', () => {
+  assert.equal(carrefour.search?.tool, 'search_products');
+  assert.deepEqual(carrefour.search?.args, { q: '{query}' });
+  assert.equal(mappingReady(carrefour), false);
+  assert.equal(mappingReady({ ...carrefour, search: { ...carrefour.search!, fields: { ean: 'a', title: 'b' } } }), true);
+});
+
+test('search block validation', () => {
+  const raw = YAML.parse(readFileSync(paths.provider('carrefour'), 'utf8'));
+  raw.search = { tool: 'submit_checkout_payment', args: [], fields: { title: 'x', price: { path: 'p', parse: 'euros' } } };
+  const v = validateProvider(raw, 'carrefour');
+  assert.ok(!v.ok);
+  if (!v.ok) {
+    const all = v.errors.join('\n');
+    for (const s of ['search.tool: "submit_checkout_payment" is forbidden', 'search.args: must be a mapping', 'search.fields.ean: required', 'search.fields.price.parse: must be one of'])
+      assert.ok(all.includes(s), `missing "${s}" in:\n${all}`);
   }
 });

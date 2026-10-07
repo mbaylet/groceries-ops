@@ -36,3 +36,7 @@ forbidden:
   - validate_checkout_slot
   - select_cart_delivery_slot
   - apply_promo_code_to_cart
+search:
+  tool: search_products
+  args: { q: "{query}" }
+  # products_path and fields are written by /groceries setup (mapping discovery) from real responses

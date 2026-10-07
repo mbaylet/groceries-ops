@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import YAML from 'yaml';
 import { paths } from './paths.ts';
+import { FIELD_NAMES, PARSE_KINDS, type SearchSpec } from './product-mapper.ts';
 
 export const CAPABILITY_NAMES = [
   'session_check', 'login', 'search', 'add_to_cart', 'set_quantity', 'remove', 'read_cart', 'order_history', 'frequent',
@@ -15,6 +16,7 @@ export interface McpProvider {
   install: string;
   spawn: { command: string; args: string[] };
   notes?: string;
+  search?: SearchSpec;
   capabilities: {
     session_check: SessionCheck;
     login: string;
@@ -84,9 +86,36 @@ export function validateProvider(raw: unknown, id: string): { ok: true; provider
       }
     }
   }
+  if (raw.search !== undefined) {
+    const s = raw.search;
+    if (!isObj(s)) err('search', 'must be a mapping');
+    else {
+      tool('search.tool', s.tool);
+      if (s.args !== undefined && !isObj(s.args)) err('search.args', 'must be a mapping');
+      if (s.products_path !== undefined && typeof s.products_path !== 'string') err('search.products_path', 'must be a string');
+      if (s.fields !== undefined) {
+        if (!isObj(s.fields)) err('search.fields', 'must be a mapping');
+        else {
+          const f = s.fields;
+          for (const k of ['ean', 'title'] as const) if (f[k] === undefined) err(`search.fields.${k}`, 'required');
+          for (const [k, v] of Object.entries(f)) {
+            if (k === 'text') {
+              if (!(typeof v === 'string' || (Array.isArray(v) && v.every((x) => typeof x === 'string')))) err('search.fields.text', 'must be a path or a list of paths');
+              continue;
+            }
+            if (!(FIELD_NAMES as readonly string[]).includes(k)) err(`search.fields.${k}`, `unknown field (known: ${FIELD_NAMES.join(', ')}, text)`);
+            else if (typeof v === 'string') continue;
+            else if (!isObj(v) || typeof v.path !== 'string') err(`search.fields.${k}`, 'must be a path or { path, parse }');
+            else if (v.parse !== undefined && !PARSE_KINDS.includes(v.parse as never)) err(`search.fields.${k}.parse`, `must be one of ${PARSE_KINDS.join(', ')}`);
+          }
+        }
+      }
+    }
+  }
   if (errors.length) return { ok: false, errors };
   const provider = raw as unknown as McpProvider;
   provider.capabilities.session_check.args ??= {};
+  if (provider.search) provider.search.args ??= {};
   return { ok: true, provider };
 }
 
@@ -113,4 +142,8 @@ export function classifySession(result: { isError?: boolean; text: string }, che
   if (new RegExp(check.expired_pattern).test(result.text)) return 'expired';
   if (new RegExp(check.ok_pattern).test(result.text)) return 'ok';
   return 'unknown';
+}
+
+export function mappingReady(p: McpProvider): boolean {
+  return Boolean(p.search?.fields);
 }
