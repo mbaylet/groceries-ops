@@ -31,7 +31,7 @@ not fixed strings. Recipe names, ingredient lines and product labels stay in the
 2. **Nothing enters the cart without consent.** Only (a) lines the user approved in a review step,
    or (b) due habits with `mode: auto`. `ask` habits and staples need an explicit yes first.
 3. **Filtering is the script's job.** Time, exclusions, appliances and repeats are decided by
-   `node scripts/recipes.ts fetch`. Never show a recipe it rejected or that you did not fetch through it.
+   `node scripts/recipes.ts fetch`. Never show a recipe it rejected or that you did not fetch through it. Product picking is likewise the script's job: never re-rank or second-guess a `resolved` line.
 4. **Dates come from scripts.** Habit intervals and due dates come from `node scripts/habits.ts`.
 5. Never edit `profile.yml` or `data/` beyond what the current mode says; never put personal facts
    into `modes/`, `AGENTS.md` or other system files.
@@ -59,6 +59,7 @@ not fixed strings. Recipe names, ingredient lines and product labels stay in the
 | `node scripts/shopping-list.ts build \| drop \| add` | scaled, merged list with per-recipe contributions |
 | `node scripts/habits.ts list \| due \| record \| answer \| reconcile \| propose \| set-mode \| set-interval \| remove` | purchase habits |
 | `node scripts/choices.ts get \| set \| remove \| list` | remembered product choices |
+| `node scripts/products.ts resolve \| map-check \| validate \| feedback \| suggest` | product picking from preference rules (calls the store search itself) |
 
 ## Development
 

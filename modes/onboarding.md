@@ -13,9 +13,21 @@ current value and ask what to change instead of starting over.
    filtering: `cookeo`, `thermomix`, `monsieur_cuisine`, `companion`, `airfryer`, `slow_cooker`,
    `pressure_cooker`, `barbecue`, `plancha` — recipes needing one not listed are rejected.
 4. **Time** — usual maximum total time (prep + cooking) for a weekday meal and a weekend meal.
-5. **Product rules** — per category: `default` plus any of `fruits_legumes`, `viande`, `poisson`,
-   `cremerie`, `epicerie`, `boissons`, `hygiene`, `entretien` (the user may add others). Rule keys:
-   `store_brand_ok`, `organic`, `preferred_brand`, `cheapest`, `max_price_per_kg`.
+5. **Buying preferences** — ask the user to describe them freely, in their own words (brands,
+   organic, budget, animal welfare, origin, things never to buy, special rules for some people in
+   the household). Store the text verbatim in `preferences_text`. Then convert it into
+   `product_rules` (and `tags` / `scoring` if needed):
+   - one rule per idea; `id` short and readable;
+   - "never X" → `forbid`; "only X" / "always X" → `require`; "X if not too expensive" → `prefer`
+     with `max_premium_pct`; "I like X" → `prefer` with a `weight`; price limits → `budget`;
+   - scope with `applies_to`: `all`, `{ match: [...], not_match: [...] }` on the item name, or
+     `{ tags: [...] }` for items the user labels (declare each tag in `tags`, e.g. `enfant`);
+   - use the words that appear on product labels in the store's language (`plein air`, `label rouge`,
+     `bio`, `sol`, `cage`), several synonyms in `any`;
+   - "best balance of price/quality/…" → adjust `scoring.weights` (price_per_unit, preferences, rating).
+   Run `node scripts/products.ts validate`; fix every error (contradictions included). Show the user a
+   table — rule · applies to · effect · strict? — and save only after they confirm. To change a
+   preference later, re-convert only the changed sentence.
 6. **Store** — provider (`carrefour`, or `list` for a shopping list with no store connection), drive or
    delivery, usual store (free text in `store_id`). For an MCP provider, run the login part of
    `modes/setup.md` now.

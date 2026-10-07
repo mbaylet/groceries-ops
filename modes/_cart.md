@@ -24,29 +24,37 @@ If order history fails, continue and mention it in one line.
 
 ## Product resolution
 
-For each thing to buy, first hit wins:
-1. **Remembered choice:** `node scripts/choices.ts get "<ingredient>"` → use that EAN.
-2. **History:** a habit with an EAN for the same item (`node scripts/habits.ts list`), or a match
-   in `capability:frequent`.
-3. **Search + rules:** `capability:search` with a short French product query. Category = the closest
-   key in `profile.product_rules` (else `default`). Apply, in order: `preferred_brand`, `organic`,
-   `store_brand_ok`, `max_price_per_kg`, `cheapest`. Skip unavailable products.
-   Query the plain ingredient ("riz", not "riz sachets cuisson 8 min"): a convenience format named
-   in the recipe line (sachet, micro-ondes, express) is not a requirement. Compare candidates by
-   price per kg/L, organic included, and state the comparison in the review's "why" column.
+The script picks products; you only handle exceptions.
 
-Quantity: the fewest packs covering the needed amount (round up). Counts without a unit (3 oignons)
-→ loose items, or the smallest pack covering the count.
+1. Write the items to buy to `data/runs/{today}-request.json`:
+   `[{ "item": "<plain ingredient, in the store's language>", "need": { "qty": 400, "unit": "g" }, "tags": ["enfant"], "role": "key" }]`.
+   Query the plain ingredient ("riz", not "riz sachets cuisson 8 min"): a convenience format named in
+   a recipe line is not a requirement. `need` comes from the shopping list (`total` + `unit`); omit it
+   when unknown. Add a tag when the user says who an item is for ("pour mon fils" → `enfant`).
+2. `node scripts/products.ts resolve data/runs/{today}-request.json`.
+   - Output `{"fallback": "search-via-claude", ...}` → for each `files[]` entry call
+     `capability:search` with its `query`, write the raw JSON result to its `file`, then run
+     `node scripts/products.ts resolve data/runs/{today}-request.json --from-search <dir>`.
+   - An error mentioning mapping discovery → run the mapping discovery in `modes/setup.md` first.
+3. `resolved[]` lines go straight to the review table (their `why` explains the choice).
+4. `exceptions[]`:
+   - `close_call` → show the ≤ 3 `options` in one line each and let the user pick (or pick the one that
+     best matches `preferences_text` when the user asked not to be bothered);
+   - `none` → say why (`eliminated` counts, `relaxed` rules) and offer: another search term, relaxing a
+     rule for this time, or skipping. For a `key` item the calling mode decides (plan: replace the recipe);
+   - `ask` → a hard rule could not be checked on that product (missing information): ask the user;
+   - `error` → retry once, then report.
 
-Unavailable product: a `minor` item gets a substitute, flagged in the review. A `key` item is
-handled by the calling mode (plan: replace the recipe; add: tell the user and offer alternatives).
+Do not search products yourself outside the fallback above.
 
 ## Review
 
-One table: item · product · quantity · price · why (`choice`, `history`, `rule:<category>`,
+One table: item · product · quantity · price · why (the `why` ids from the script, `status-quo`,
 `habit:auto`, `habit:yes`, `staple:yes`, `substitute`) + estimated total. The user may change any
-line; re-resolve it. When the user picks a specific product for an ingredient, remember it:
-`node scripts/choices.ts set "<ingredient>" <ean> "<label>"`. Continue only on an explicit OK.
+line; re-resolve it. When the user picks another product than the script's, remember it:
+`node scripts/choices.ts set "<ingredient>" <ean> "<label>"` and
+`node scripts/products.ts feedback "<item>" <user_ean> <script_ean> --rules <ids from why>`.
+Continue only on an explicit OK.
 
 ## Fill and verify
 

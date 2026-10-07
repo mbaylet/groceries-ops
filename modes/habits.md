@@ -9,3 +9,5 @@
    - remove an item → `node scripts/habits.ts remove <key>`;
    - see suggestions → `node scripts/habits.ts propose` (tracked items with a regular rhythm worth promoting).
 3. Show the updated row after each change.
+4. `node scripts/products.ts suggest` → if a preference rule was overridden repeatedly, propose the
+   change to the user; edit `product_rules` only on their OK, then `node scripts/products.ts validate`.

@@ -45,3 +45,22 @@ test('profile comes first: router and setup gate on onboarding', () => {
   assert.ok(gate >= 0, 'setup.md must check onboardingNeeded');
   assert.ok(gate < setup.indexOf('capability:session_check'), 'setup.md must gate before the login check');
 });
+
+test('cart resolution goes through the script, with the fallback', () => {
+  const cart = read('modes/_cart.md');
+  assert.match(cart, /node scripts\/products\.ts resolve/);
+  assert.match(cart, /--from-search/);
+  assert.doesNotMatch(cart, /preferred_brand|store_brand_ok/);
+});
+
+test('onboarding converts free-text preferences and validates them', () => {
+  const o = read('modes/onboarding.md');
+  assert.match(o, /preferences_text/);
+  assert.match(o, /node scripts\/products\.ts validate/);
+});
+
+test('setup runs mapping discovery and map-check', () => {
+  const s = read('modes/setup.md');
+  assert.match(s, /node scripts\/products\.ts map-check/);
+  assert.match(s, /tests\/fixtures\/\{provider\}\/search-/);
+});
