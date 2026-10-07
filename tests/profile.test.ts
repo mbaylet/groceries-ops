@@ -19,7 +19,7 @@ test('errors name the field', () => {
   const raw = YAML.parse(VALID_PROFILE_YAML);
   raw.household.adults = 0;
   raw.time.weekday_max_min = 'thirty';
-  raw.product_rules.default.bio = true;
+  raw.product_rules = [{ id: 'x', applies_to: 'all', require: { any: [] } }];
   raw.store.provider = 'auchan';
   raw.recipes.sources = ['750g'];
   delete raw.plan;
@@ -27,7 +27,7 @@ test('errors name the field', () => {
   assert.ok(!v.ok);
   if (!v.ok) {
     const joined = v.errors.join('\n');
-    for (const field of ['household.adults', 'time.weekday_max_min', 'product_rules.default.bio', 'store.provider', 'recipes.sources', 'plan:'])
+    for (const field of ['household.adults', 'time.weekday_max_min', 'product_rules.x.require.any', 'store.provider', 'recipes.sources', 'plan:'])
       assert.ok(joined.includes(field), `missing error for ${field}:\n${joined}`);
   }
 });
@@ -53,4 +53,25 @@ test('loadProfile statuses', () => {
   assert.equal(loadProfile(opts).status, 'invalid');
   writeValidProfile(root);
   assert.equal(requireProfile(opts).food.exclusions[0], 'champignon');
+});
+
+test('old per-category product_rules format is rejected with a pointer to onboarding', () => {
+  const raw = YAML.parse(VALID_PROFILE_YAML);
+  raw.product_rules = { default: { store_brand_ok: true } };
+  const v = validateProfile(raw, opts);
+  assert.ok(!v.ok);
+  if (!v.ok) assert.match(v.errors.join('\n'), /product_rules: old format/);
+});
+
+test('tags, preferences_text and scoring are validated', () => {
+  const raw = YAML.parse(VALID_PROFILE_YAML);
+  raw.tags = 'enfant';
+  raw.preferences_text = 42;
+  raw.scoring = { on_unknown: 'maybe' };
+  const v = validateProfile(raw, opts);
+  assert.ok(!v.ok);
+  if (!v.ok) {
+    const all = v.errors.join('\n');
+    for (const s of ['tags:', 'preferences_text:', 'scoring.on_unknown']) assert.ok(all.includes(s), s);
+  }
 });

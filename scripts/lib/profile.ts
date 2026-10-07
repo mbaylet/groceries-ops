@@ -1,21 +1,17 @@
 import { existsSync, readFileSync } from 'node:fs';
 import YAML from 'yaml';
 import { paths } from './paths.ts';
-
-export interface ProductRule {
-  store_brand_ok?: boolean;
-  organic?: boolean;
-  preferred_brand?: string;
-  cheapest?: boolean;
-  max_price_per_kg?: number;
-}
+import { validateRules, validateScoring, type Rule, type ScoringInput } from './rules.ts';
 
 export interface Profile {
   household: { adults: number; children: { age: number }[]; servings: number };
   food: { diet: string; exclusions: string[]; preferences: string };
   tools: string[];
   time: { weekday_max_min: number; weekend_max_min: number };
-  product_rules: Record<string, ProductRule>;
+  tags: string[];
+  preferences_text?: string;
+  product_rules: Rule[];
+  scoring?: ScoringInput;
   store: { provider: string; mode: 'drive' | 'delivery'; store_id: string };
   recipes: { sources: string[] };
   plan: { avoid_repeat_weeks: number };
@@ -28,14 +24,6 @@ export type ProfileLoad =
   | { status: 'template' }
   | { status: 'invalid'; errors: string[] }
   | { status: 'ok'; profile: Profile };
-
-export const RULE_KEYS: Record<string, 'boolean' | 'string' | 'number'> = {
-  store_brand_ok: 'boolean',
-  organic: 'boolean',
-  preferred_brand: 'string',
-  cheapest: 'boolean',
-  max_price_per_kg: 'number',
-};
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -72,21 +60,14 @@ export function validateProfile(raw: unknown, opts: ValidateOptions = {}): Valid
   if (!isInt(t.weekday_max_min, 5, 600)) err('time.weekday_max_min', 'must be an integer between 5 and 600 (minutes)');
   if (!isInt(t.weekend_max_min, 5, 600)) err('time.weekend_max_min', 'must be an integer between 5 and 600 (minutes)');
 
-  const pr = raw.product_rules;
-  if (!isObj(pr)) err('product_rules', 'missing section');
-  else {
-    for (const [cat, rule] of Object.entries(pr)) {
-      if (!isObj(rule)) {
-        err(`product_rules.${cat}`, 'must be a mapping');
-        continue;
-      }
-      for (const [k, v] of Object.entries(rule)) {
-        const type = RULE_KEYS[k];
-        if (!type) err(`product_rules.${cat}.${k}`, `unknown rule (known: ${Object.keys(RULE_KEYS).join(', ')})`);
-        else if (typeof v !== type) err(`product_rules.${cat}.${k}`, `must be a ${type}`);
-      }
-    }
-  }
+  const tags = raw.tags === undefined ? [] : raw.tags;
+  if (!isStrArray(tags)) err('tags', 'must be a list of strings');
+  if (raw.preferences_text !== undefined && typeof raw.preferences_text !== 'string') err('preferences_text', 'must be a string');
+  if (Array.isArray(raw.product_rules)) errors.push(...validateRules(raw.product_rules, isStrArray(tags) ? tags : []));
+  else if (isObj(raw.product_rules))
+    err('product_rules', 'old format (per-category mapping) — rerun /groceries onboarding to convert your preferences into rules');
+  else err('product_rules', 'must be a list of rules (may be empty: [])');
+  if (raw.scoring !== undefined) errors.push(...validateScoring(raw.scoring));
 
   const s = sec('store');
   if (typeof s.provider !== 'string') err('store.provider', 'must be a string');
@@ -105,7 +86,10 @@ export function validateProfile(raw: unknown, opts: ValidateOptions = {}): Valid
   const p = sec('plan');
   if (!isInt(p.avoid_repeat_weeks, 0, 52)) err('plan.avoid_repeat_weeks', 'must be an integer between 0 and 52');
 
-  return errors.length ? { ok: false, errors } : { ok: true, profile: raw as unknown as Profile };
+  if (errors.length) return { ok: false, errors };
+  const profile = raw as unknown as Profile;
+  profile.tags ??= [];
+  return { ok: true, profile };
 }
 
 export function loadProfile(opts: ValidateOptions = {}): ProfileLoad {
