@@ -92,10 +92,10 @@ scoring:
 |---|---|
 | `id` | stable identifier used in explanations and suggestions |
 | `applies_to` | `all`, or `{ match: [...], not_match: [...], tags: [...] }` — words are matched (normalised: case, accents, plurals, whole words) against the **item request** (ingredient or item name) and its tags; `match` is any-of |
-| `require` / `forbid` | `{ any: [...] }` or `{ all: [...] }` of words/phrases matched against the **product text** (title + brand + labels + description fields exposed by the adapter); `brand_any` matches the brand only |
+| `require` / `forbid` | `{ any: [...] }` or `{ all: [...] }` of words/phrases matched against the **product text** (title + brand + labels + description fields exposed by the provider mapping); `brand_any` matches the brand only |
 | `prefer` | same matchers; soft, contributes `weight` to the preference score when satisfied |
 | `max_premium_pct` | only on `prefer`: the preference counts only if the satisfying product's price per unit ≤ best non-satisfying compliant price per unit × (1 + pct/100) |
-| `budget` | `max_price`, `max_price_per_kg` (per unit: kg, l or piece as the adapter reports) |
+| `budget` | `max_price`, `max_price_per_kg` (per unit: kg, l or piece as the provider mapping reports) |
 | `strictness` | `hard` (never relaxed) or `soft` (relaxable when nothing survives); default `hard` for require/forbid/budget |
 | `priority` | integer, default 0; higher wins conflicts and is relaxed last |
 | `weight` | for `prefer`, default 0.1 |
@@ -118,8 +118,8 @@ Input (written by Claude, small):
 
 Per item, all in the script:
 
-1. **Search** — via the provider adapter (§5): one MCP client session for the whole run, query = item name, first page. Raw responses are written to `data/runs/{date}-search/{item}.json` for debugging and never printed.
-2. **Normalise** — adapter maps raw products to `Product { ean, title, brand, store_brand, price, unit_price, unit (kg|l|piece), pack_qty, pack_unit, available, text, rating? }`.
+1. **Search** — the provider's `search.tool` (§5): one MCP client session for the whole run, query = item name, first page. Raw responses are written to `data/runs/{date}-search/{item}.json` for debugging and never printed.
+2. **Normalise** — the declarative mapping (§5) turns raw products into `Product { ean, title, brand, store_brand, price, unit_price, unit (kg|l|piece), pack_qty, pack_unit, available, text, rating? }`.
 3. **Scope** — select the rules whose `applies_to` matches the item; resolve specificity.
 4. **Hard filter** — unavailable, failing hard `require`/`forbid`/`budget`; unknown attribute under `on_unknown: reject` (e.g. no unit price for a `max_price_per_kg` rule).
 5. **Relaxation** — if empty: relax `soft` rules by ascending priority until something survives; if still empty → decision `none` with the eliminations summary.
@@ -146,20 +146,33 @@ Claude then only: resolves exceptions with the user, renders the review table fr
 
 `products.ts resolve --from-search <dir>` runs the same pipeline on raw search results Claude saved itself (when the script cannot start its own MCP client, e.g. Chromium profile locked by Claude Code's instance). Detected automatically: if the MCP connect fails, the output says `{"fallback": "search-via-claude"}` and the mode files tell Claude to call `capability:search` per item, write raw results to the directory, and re-run with `--from-search`.
 
-## 5. Provider adapter
+## 5. Declarative product mapping (no per-provider code)
 
-Each MCP provider gets an adapter module next to its YAML: `providers/carrefour.adapter.ts` exporting
+The script calls the provider's MCP search tool itself; the provider YAML declares how to read the raw response. A generic reader follows the paths and applies a few generic conversions.
 
-```ts
-export interface ProviderAdapter {
-  searchArgs(query: string): Record<string, unknown>;   // { q: query }
-  parseSearch(raw: unknown): Product[];                 // pure, fixture-tested
-}
+```yaml
+# providers/carrefour.yml (paths below are illustrative — the real ones come from discovery)
+search:
+  tool: search_products
+  args: { q: "{query}" }
+  products_path: data                       # where the product list sits in the raw response
+  fields:
+    ean: attributes.ean
+    title: attributes.title
+    brand: attributes.brand
+    price: { path: attributes.offers.price, parse: price }
+    unit_price: { path: attributes.perUnitLabel, parse: unit_price }   # "12,50 €/kg" → 12.5 per kg
+    pack: { path: attributes.packaging, parse: pack }                  # "6 x 125 g" → 750 g
+    available: { path: attributes.availability.purchasable, parse: bool }
+    rating: { path: attributes.rating.value, parse: number }
+    text: [attributes.labels, attributes.packaging, attributes.description]  # every string leaf, for rule matching
 ```
 
-- The MCP client (spawn, connect, call tool, close) is shared with `doctor` (`lib/mcp-probe.ts` grows into `lib/mcp-client.ts`).
-- `parseSearch` is written against a **captured real response**: `node scripts/products.ts capture "<query>"` saves the raw `search_products` output to `tests/fixtures/carrefour/search-<query>.json`. Implementation of the mapping waits for that capture (user-run, needs login).
-- Text for matching = title + brand + every label/badge/description string the raw product exposes, normalised.
+- **Generic conversions:** `number`, `price`, `unit_price` (€/kg, €/l, €/pièce, €/100 g), `pack` (g/kg/ml/cl/l, "6 x 125 g", "x12"), `bool`, `not` (for "out of stock" style flags). `text` collects every string leaf under the listed paths.
+- `ean` and `title` are required; a raw product missing either is skipped. Missing optional fields stay unknown (and fall under `on_unknown` for rules that need them).
+- **Mapping discovery** (a `/groceries setup` step, run when the provider has no `fields` or the health check fails): Claude runs 4–5 typed searches through its own MCP connection (eggs, an organic product, a loose/per-kg product, a store-brand product, something likely unavailable), saves the raw responses to `tests/fixtures/{provider}/search-*.json`, proposes `products_path` + `fields`, validates them with `node scripts/products.ts map-check tests/fixtures/{provider}/search-*.json`, shows the user a few mapped products, and writes the mapping on confirmation. One-time token cost; reusable for any new provider and for repairing a broken mapping.
+- **Mapping health check:** `map-check` reports, per field, the share of products where it was filled; required for health: `ean`, `title`, `price`, `unit_price`, `available` ≥ 80 %. Run offline by the doctor on saved fixtures, and live (search "lait") by the doctor and `/groceries setup` after the login check. A failing check marks plan/add as needing repair (setup offers discovery).
+- A provider with an unusual format may still ship a TypeScript reader as an escape hatch; not needed for Carrefour.
 
 ## 6. Onboarding conversion (one-time token cost)
 
@@ -177,16 +190,17 @@ Default when the user states nothing: `scoring` defaults, no rules (cheapest uni
 - `profile.ts`: new `product_rules` list schema + `preferences_text` + `scoring`; old mapping format rejected with a message pointing to onboarding.
 - `modes/_cart.md` Product resolution: replaced by "write items JSON → `products.ts resolve` → handle exceptions".
 - `doctor.ts`: runs rule validation (§2 static validation).
-- `providers/carrefour.yml`: add `adapter: carrefour.adapter.ts`.
+- `providers/carrefour.yml`: add the `search` block (tool + args now; `products_path`/`fields` filled by mapping discovery).
+- `modes/setup.md`: mapping discovery + live mapping health check; `doctor.ts`: offline + live mapping health.
 
 ## 9. Testing
 
 - Engine (pure, offline): hard filter, closed-world unknowns, specificity (`enfant-bio` vs `bio-raisonnable`), premium rule at 19 % / 21 %, Pareto pruning, indifference vs close call, status quo within/outside threshold, relaxation order and hard-never-relaxed, quantity rounding, explanation contents.
 - Validator: contradiction, unknown tag, bad threshold.
-- Adapter: fixture-based once captured.
+- Mapper: path reading, every conversion, health ratios — on synthetic raw JSON; real Carrefour fixtures added by discovery.
 - Resolve with a fake MCP client: one session for N items, raw results never on stdout, fallback signal on connect failure.
 
 ## 10. Open items
 
-1. Raw `search_products` response shape (price per unit, labels, availability fields) — capture needed (user, logged in).
+1. Raw `search_products` response shape — filled in by mapping discovery in a logged-in session.
 2. Whether two MCP server instances can share the Chromium profile (decides how often fallback A is used).
