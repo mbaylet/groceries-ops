@@ -22,46 +22,63 @@ Store actions are written `capability:<name>`; resolve them through the provider
 3. `node scripts/habits.ts reconcile data/runs/{today}-orders.json`.
 If order history fails, continue and mention it in one line.
 
-## Product resolution
+## Product resolution and fill (Haiku subagents)
 
-The script picks products; you only handle exceptions.
+Products are picked **and added to the cart** by Haiku subagents, one per item. The instructions they follow
+live in one file written once (`data/product-brief.md`); your per-item prompt stays tiny to save tokens.
 
-1. Write the items to buy to `data/runs/{today}-request.json`:
-   `[{ "item": "<plain ingredient, in the store's language>", "need": { "qty": 400, "unit": "g" }, "tags": ["enfant"], "role": "key" }]`.
-   Query the plain ingredient ("riz", not "riz sachets cuisson 8 min"): a convenience format named in
-   a recipe line is not a requirement. `need` comes from the shopping list (`total` + `unit`); omit it
-   when unknown. Add a tag when the user says who an item is for ("pour mon fils" → `enfant`).
-2. `node scripts/products.ts resolve data/runs/{today}-request.json`.
-   - Output `{"fallback": "search-via-claude", ...}` → for each `files[]` entry call
-     `capability:search` with its `query`, write the raw JSON result to its `file`, then run
-     `node scripts/products.ts resolve data/runs/{today}-request.json --from-search <dir>`.
-   - An error mentioning mapping discovery → run the mapping discovery in `modes/setup.md` first.
-3. `resolved[]` lines go straight to the review table (their `why` explains the choice).
-4. `exceptions[]`:
-   - `close_call` → show the ≤ 3 `options` in one line each and let the user pick (or pick the one that
-     best matches `preferences_text` when the user asked not to be bothered);
-   - `none` → say why (`eliminated` counts, `relaxed` rules) and offer: another search term, relaxing a
-     rule for this time, or skipping. For a `key` item the calling mode decides (plan: replace the recipe);
-   - `ask` → a hard rule could not be checked on that product (missing information): ask the user;
-   - `error` → retry once, then report.
+### 1. Brief (once, not per run)
+`node scripts/brief.ts status`. If `ok` is false:
+- `rules` stale or no file → write the user-rules block (see `modes/onboarding.md` step 5b) and
+  `node scripts/brief.ts build <file>`;
+- only `template` stale → `node scripts/brief.ts build --keep-rules`.
 
-Do not search products yourself outside the fallback above.
+### 2. Request
+Write the items to buy to `data/runs/{today}-request.json`:
+`[{ "item": "<plain ingredient, in the store's language>", "need": { "qty": 400, "unit": "g" }, "tags": ["bebe"], "slug": "<file-safe name>" }]`.
+Query the plain ingredient ("riz", not "riz sachets cuisson 8 min"). `need` comes from the shopping list
+(`total` + `unit`; omit when unknown). Tag items the user labels. Give a distinct `slug` per line, even for
+the same ingredient with different tags. `ask` habits and staples join the request only after the user said yes.
+The subagents' choices go to temporary files in `data/runs/{today}-picks/`: empty that folder before dispatching.
+
+### 3. Subagents
+Read the cart once (`capability:read_cart`) for `basketServiceId` (its `facilityServiceId`) and `subBasketType`.
+Launch **Haiku** subagents (`model: haiku`), at most **8 at a time**, one per request line, each with exactly:
+```
+Read {brief path from brief.ts status} and follow it.
+ITEM: {the request line as JSON}
+CART: basketServiceId={…}, subBasketType={…}
+PICK: {absolute path}/data/runs/{today}-picks/{slug}.json
+```
+Add nothing else to the prompt: the brief holds the rules, the steps and the output format.
+
+### 4. Reconcile and check
+When all are done, read the pick files (small JSON) and `capability:read_cart` (large output, saved to a
+file: extract lines with a small node script, never paste it). Then check, yourself:
+- **cart**: every `added` pick is in the cart with the right EAN and quantity; nothing else is there. Re-add a
+  missing line once; report any other difference.
+- **validity of each choice**, from the pick's `title` / `flags` / `packaging` and the brief: relevant raw
+  ingredient, hard rules respected (including tags), no first-price range, quantity covers the need without
+  waste (e.g. one bunch of spring onions, not two). Fix a wrong line yourself: `capability:remove`, then add the
+  right product from the pick's `options` or ask the user.
+Then, with the user: `doubtful` → show the ≤ 3 `options` one line each, add their pick yourself; `none` → say
+why, offer another search term or skipping (plan: for a key item replace the recipe); `error` → report.
+Delete `data/runs/{today}-picks/` once the Record step is done.
 
 ## Review
 
-One table: item · product · quantity · price · why (the `why` ids from the script, `status-quo`,
-`habit:auto`, `habit:yes`, `staple:yes`, `substitute`) + estimated total. The user may change any
-line; re-resolve it. When the user picks another product than the script's, remember it:
-`node scripts/choices.ts set "<ingredient>" <ean> "<label>"` and
-`node scripts/products.ts feedback "<item>" <user_ean> <script_ean> --rules <ids from why>`.
-Continue only on an explicit OK.
+Show one table after the fact: item · product · quantity · price · why + the cart total. The user may
+change any line: remove it with `capability:remove` (else `capability:set_quantity` with 0) and add the
+replacement. When the user picks another product than the subagent's, remember it:
+`node scripts/choices.ts set "<ingredient>" <ean> "<label>"`.
+`ask` habits and staples are added only after an explicit yes (see the calling mode).
 
 ## Fill and verify
 
-1. Add each approved line with `capability:add_to_cart`. Collect failures; keep going.
-2. `capability:read_cart`; compare with the approved lines and report any difference.
-3. To remove a line later in the run, use `capability:remove` (else `capability:set_quantity` with 0).
-   To lower a quantity, follow the provider `notes`.
+1. Lines added by subagents are already in the cart; add the lines decided during Reconcile and Review
+   with `capability:add_to_cart`. Collect failures; keep going.
+2. `capability:read_cart`; compare with the final table and report any difference.
+3. To lower a quantity, follow the provider `notes`.
 4. End with: the cart is ready — checkout is the user's.
 
 ## Record

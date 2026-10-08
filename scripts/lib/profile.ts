@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import YAML from 'yaml';
 import { paths } from './paths.ts';
-import { validateRules, validateScoring, type Rule, type ScoringInput } from './rules.ts';
 
 export interface Profile {
   household: { adults: number; children: { age: number }[]; servings: number };
@@ -10,10 +9,8 @@ export interface Profile {
   time: { weekday_max_min: number; weekend_max_min: number };
   tags: string[];
   preferences_text?: string;
-  product_rules: Rule[];
-  scoring?: ScoringInput;
   store: { provider: string; mode: 'drive' | 'delivery'; store_id: string };
-  recipes: { sources: string[] };
+  recipes: { sources: string[]; min_rating?: number };
   plan: { avoid_repeat_weeks: number };
 }
 
@@ -63,11 +60,6 @@ export function validateProfile(raw: unknown, opts: ValidateOptions = {}): Valid
   const tags = raw.tags === undefined ? [] : raw.tags;
   if (!isStrArray(tags)) err('tags', 'must be a list of strings');
   if (raw.preferences_text !== undefined && typeof raw.preferences_text !== 'string') err('preferences_text', 'must be a string');
-  if (Array.isArray(raw.product_rules)) errors.push(...validateRules(raw.product_rules, isStrArray(tags) ? tags : []));
-  else if (isObj(raw.product_rules))
-    err('product_rules', 'old format (per-category mapping) — rerun /groceries onboarding to convert your preferences into rules');
-  else err('product_rules', 'must be a list of rules (may be empty: [])');
-  if (raw.scoring !== undefined) errors.push(...validateScoring(raw.scoring));
 
   const s = sec('store');
   if (typeof s.provider !== 'string') err('store.provider', 'must be a string');
@@ -82,6 +74,9 @@ export function validateProfile(raw: unknown, opts: ValidateOptions = {}): Valid
     for (const id of r.sources)
       if (!opts.sources.includes(id)) err('recipes.sources', `unknown recipe source "${id}" (known: ${opts.sources.join(', ')})`);
   }
+
+  if (r.min_rating !== undefined && !(typeof r.min_rating === 'number' && r.min_rating >= 0 && r.min_rating <= 5))
+    err('recipes.min_rating', 'must be a number between 0 and 5');
 
   const p = sec('plan');
   if (!isInt(p.avoid_repeat_weeks, 0, 52)) err('plan.avoid_repeat_weeks', 'must be an integer between 0 and 52');

@@ -46,21 +46,19 @@ test('profile comes first: router and setup gate on onboarding', () => {
   assert.ok(gate < setup.indexOf('capability:session_check'), 'setup.md must gate before the login check');
 });
 
-test('cart resolution goes through the script, with the fallback', () => {
+test('cart products are picked by Haiku subagents following a rules brief', () => {
   const cart = read('modes/_cart.md');
-  assert.match(cart, /node scripts\/products\.ts resolve/);
-  assert.match(cart, /--from-search/);
+  assert.match(cart, /Haiku/);
+  assert.match(cart, /node scripts\/brief\.ts status/);
+  assert.match(cart, /data\/product-brief\.md/);
+  assert.match(cart, /at most \*\*8 at a time\*\*/);
+  assert.doesNotMatch(cart, /products\.ts resolve/);
   assert.doesNotMatch(cart, /preferred_brand|store_brand_ok/);
 });
 
-test('onboarding converts free-text preferences and validates them', () => {
+test('onboarding turns free-text preferences into the product brief', () => {
   const o = read('modes/onboarding.md');
   assert.match(o, /preferences_text/);
-  assert.match(o, /node scripts\/products\.ts validate/);
-});
-
-test('setup runs mapping discovery and map-check', () => {
-  const s = read('modes/setup.md');
-  assert.match(s, /node scripts\/products\.ts map-check/);
-  assert.match(s, /tests\/fixtures\/\{provider\}\/search-/);
+  assert.match(o, /node scripts\/brief\.ts build/);
+  assert.match(o, /First-price products: excluded/);
 });

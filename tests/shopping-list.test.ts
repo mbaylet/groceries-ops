@@ -37,6 +37,12 @@ test('staples are flagged and sorted last', () => {
   assert.ok(l.items.slice(firstStaple).every((i) => i.staple));
 });
 
+test('the shipped staples cover kitchen consumables such as baking paper', () => {
+  const l = buildList([{ id: 'p', servings: 2, ingredients: ['4 feuilles de papier sulfurisé', 'papier cuisson', '1 oignon'] }], 2, staples);
+  assert.equal(l.items.filter((i) => i.staple).length, 2);
+  assert.equal(item(l, 'oignon')?.staple, false);
+});
+
 test('units are not merged across different units', () => {
   const l = buildList([{ id: 'a', servings: 2, ingredients: ['1 oignon', "100 g d'oignon"] }], 2, staples);
   assert.equal(l.items.filter((i) => i.key === 'oignon').length, 2);

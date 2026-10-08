@@ -8,9 +8,7 @@ import { fetchHtml, type Fetcher } from './lib/http.ts';
 import { probeSession, type ProbeResult } from './lib/mcp-probe.ts';
 import { paths } from './lib/paths.ts';
 import { loadProfile } from './lib/profile.ts';
-import { classifySession, listProviderIds, loadProvider, mappingReady, missingDenies, type McpProvider, type Provider } from './lib/provider.ts';
-import { buildArgs, mappingHealth } from './lib/product-mapper.ts';
-import { openSession, parseToolJson } from './lib/mcp-client.ts';
+import { classifySession, listProviderIds, loadProvider, missingDenies, type McpProvider, type Provider } from './lib/provider.ts';
 import { getSource, sourceIds } from './recipe-sources/index.ts';
 
 export type Status = 'pass' | 'fail' | 'warn' | 'unknown';
@@ -24,8 +22,6 @@ export interface DoctorDeps {
   readSettings: () => unknown;
   readFixture: (sourceId: string) => string | undefined;
   loadProvider: (id: string) => Provider;
-  liveSearch: (p: McpProvider, query: string) => Promise<unknown>;
-  readMappingFixtures: (providerId: string) => unknown[];
 }
 
 export function nodeVersionOk(v: string): boolean {
@@ -130,28 +126,6 @@ export async function runDoctor(deps: DoctorDeps, opts: { offline: boolean }): P
     }
   }
 
-  if (profile.status === 'ok' && provider?.kind === 'mcp') {
-    const fix = 'Run /groceries setup (mapping discovery)';
-    if (!mappingReady(provider) || !provider.search) add('product-mapping', 'fail', `No product mapping for ${provider.label} yet — products cannot be picked`, true, fix);
-    else {
-      const spec = provider.search;
-      const fixtures = deps.readMappingFixtures(provider.id);
-      const offlineHealth = fixtures.length ? mappingHealth(fixtures, spec) : undefined;
-      const loginOk = checks.find((c) => c.id === 'login')?.status === 'pass';
-      if (offlineHealth && !offlineHealth.healthy)
-        add('product-mapping', 'fail', `Saved responses no longer map: missing ${offlineHealth.missing.join(', ')}`, true, fix);
-      else if (!opts.offline && loginOk) {
-        try {
-          const live = mappingHealth([await deps.liveSearch(provider, 'lait')], spec);
-          if (live.healthy) add('product-mapping', 'pass', `${live.products} products mapped from a live search`, true);
-          else add('product-mapping', 'fail', `Live search no longer maps: missing ${live.missing.join(', ') || 'products'}`, true, fix);
-        } catch (e) {
-          add('product-mapping', 'unknown', `live search failed: ${(e as Error).message}`, false, 'Run /groceries setup');
-        }
-      } else add('product-mapping', offlineHealth ? 'pass' : 'unknown', offlineHealth ? 'Saved responses map correctly' : 'Not checked live', false);
-    }
-  }
-
   const blocking = checks.some((c) => c.blocking && c.status === 'fail');
   return { onboardingNeeded, planEnabled, blocking, checks };
 }
@@ -170,19 +144,6 @@ const realDeps: DoctorDeps = {
     return f ? readFileSync(join(dir, f), 'utf8') : undefined;
   },
   loadProvider: (id) => loadProvider(id),
-  liveSearch: async (p, query) => {
-    const session = await openSession(p);
-    try {
-      return parseToolJson(await session.call(p.search!.tool, buildArgs(p.search!.args, query)));
-    } finally {
-      await session.close();
-    }
-  },
-  readMappingFixtures: (id) => {
-    const dir = paths.fixtures(id);
-    if (!existsSync(dir)) return [];
-    return readdirSync(dir).filter((n) => n.startsWith('search-') && n.endsWith('.json')).map((n) => JSON.parse(readFileSync(join(dir, n), 'utf8')));
-  },
 };
 
 const ICON: Record<Status, string> = { pass: '✅', fail: '❌', warn: '⚠️ ', unknown: '❔' };

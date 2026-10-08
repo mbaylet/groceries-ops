@@ -2,10 +2,11 @@ id: carrefour
 label: Carrefour Drive
 kind: mcp
 mcp_server: carrefour-drive
-install: "claude mcp add carrefour-drive -- npx -y github:maximeallanic/CarrefourDriveMCP"
+install: "claude mcp add -e CARREFOUR_MAX_RESPONSE_CHARS=2000000 -s local carrefour-drive -- npx -y github:maximeallanic/CarrefourDriveMCP"
 spawn:
   command: npx
   args: ["-y", "github:maximeallanic/CarrefourDriveMCP"]
+  env: { CARREFOUR_MAX_RESPONSE_CHARS: "2000000" }   # full search pages (~300k chars) must not be cut
 notes: >-
   Products are identified by EAN. Every cart call takes basketServiceId = the cart's
   facilityServiceId (e.g. 0345-150-711) and subBasketType = the cart's type (drive_clcv).
@@ -16,6 +17,16 @@ notes: >-
   set it again with add_item_to_cart. Verify each write by the cart total in the response;
   responses are truncated past CARREFOUR_MAX_RESPONSE_CHARS. The carrefour.fr page may show a
   stale cart until reloaded.
+agent_notes: >-
+  Products are identified by EAN. Every cart call takes basketServiceId (the cart's facilityServiceId)
+  and subBasketType (the cart's type). To SET a line call add_item_to_cart with counter = number of
+  packs and ALWAYS pageType: search and pageId: search (otherwise the cart comes back unchanged).
+  Verify in the returned cart that your EAN is present with that counter. For products sold by
+  weight ("vrac", "le kilo") the counter is the number of kilos: check that the line total is about
+  counter x price per kg, otherwise report doubtful. Marketplace offers (third-party sellers) are
+  not in the drive basket: ignore them. The search output is large and is saved to a file: read that
+  file with a small node script instead of pasting it.
+entry_level_brands: [SIMPL]
 capabilities:
   session_check:
     tool: carrefour_session_status
@@ -36,7 +47,3 @@ forbidden:
   - validate_checkout_slot
   - select_cart_delivery_slot
   - apply_promo_code_to_cart
-search:
-  tool: search_products
-  args: { q: "{query}" }
-  # products_path and fields are written by /groceries setup (mapping discovery) from real responses

@@ -36,6 +36,14 @@ test('filter: exclusions, tools, recent, rejected', () => {
   assert.deepEqual(filterRecipe(base, { ...crit, rejectedIds: ['x-a'] }).reasons, ['rejected']);
 });
 
+test('filter: minimum rating; unrated recipes fail it', () => {
+  const rated = (value: number) => ({ ...base, rating: { value, count: 12 } });
+  assert.ok(filterRecipe(rated(4), { ...crit, minRating: 4 }).keep);
+  assert.deepEqual(filterRecipe(rated(3.8), { ...crit, minRating: 4 }).reasons, ['low-rating:3.8<4']);
+  assert.deepEqual(filterRecipe(base, { ...crit, minRating: 4 }).reasons, ['no-rating']);
+  assert.ok(filterRecipe(base, crit).keep); // no minimum → rating ignored
+});
+
 test('store: save, load, mark used, recent', () => {
   const s = saveRecipe(base, '2026-10-01');
   assert.equal(s.id, 'x-a');
@@ -82,4 +90,8 @@ test('runFetch: keeps, saves, rejects, reports errors', async () => {
   const disabled = { ...open, recipes: { sources: ['other'] } };
   const [off] = await runFetch([BLANQUETTE], { rejectIds: [], today: day }, { profile: disabled, fetcher });
   assert.deepEqual(off.reasons, ['source-disabled:marmiton']);
+
+  const picky = { ...open, recipes: { ...open.recipes, min_rating: 4.95 } }; // fixture is rated 4.9
+  const [low] = await runFetch([BLANQUETTE], { maxMin: 180, rejectIds: [], today: day }, { profile: picky, fetcher });
+  assert.deepEqual(low.reasons, ['low-rating:4.9<4.95']);
 });

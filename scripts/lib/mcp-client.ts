@@ -1,5 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { getDefaultEnvironment, StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import type { McpProvider } from './provider.ts';
 
 export interface ToolResult { isError: boolean; text: string }
@@ -35,7 +35,8 @@ function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
 
 /** One stdio MCP session to the provider's server, reused for many calls. */
 export async function openSession(p: McpProvider, timeoutMs = 60_000): Promise<McpSession> {
-  const transport = new StdioClientTransport({ command: p.spawn.command, args: p.spawn.args, stderr: 'ignore' });
+  const env = p.spawn.env ? { ...getDefaultEnvironment(), ...p.spawn.env } : undefined;
+  const transport = new StdioClientTransport({ command: p.spawn.command, args: p.spawn.args, env, stderr: 'ignore' });
   const client = new Client({ name: 'groceries-ops', version: '0.1.0' });
   try {
     await withTimeout(client.connect(transport), timeoutMs, 'MCP connect');

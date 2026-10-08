@@ -15,8 +15,6 @@ tools: [oven, hob]
 time: { weekday_max_min: 30, weekend_max_min: 90 }
 tags: [enfant]
 preferences_text: "Jamais d'oeufs de poules élevées au sol."
-product_rules:
-  - { id: oeufs-bien-etre, applies_to: { match: [oeuf] }, forbid: { any: [sol, cage] } }
 store: { provider: carrefour, mode: drive, store_id: "123" }
 recipes: { sources: [marmiton] }
 plan: { avoid_repeat_weeks: 3 }

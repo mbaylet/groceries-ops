@@ -20,6 +20,8 @@ export interface FilterCriteria {
   tools: string[];
   recentIds: string[];
   rejectedIds: string[];
+  /** minimum average rating (out of 5); unrated recipes fail it */
+  minRating?: number;
 }
 
 export function effectiveTotalMin(r: Recipe): number | undefined {
@@ -38,6 +40,11 @@ export function filterRecipe(r: Recipe, c: FilterCriteria): { keep: boolean; rea
   const t = effectiveTotalMin(r);
   if (t === undefined) reasons.push('no-time');
   else if (t > c.maxTotalMin) reasons.push(`too-long:${t}>${c.maxTotalMin}`);
+
+  if (c.minRating !== undefined) {
+    if (!r.rating) reasons.push('no-rating');
+    else if (r.rating.value < c.minRating) reasons.push(`low-rating:${r.rating.value}<${c.minRating}`);
+  }
 
   const excluded = new Set(findExclusions([r.name, ...r.ingredients], c.exclusions).map((h) => h.exclusion));
   for (const e of excluded) reasons.push(`excluded:${e}`);

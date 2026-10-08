@@ -24,12 +24,12 @@ and offer add mode.
 5. **Shopping list** — `node scripts/shopping-list.ts build data/runs/{today}-list.json <id>...`.
    Mention any `no-yield:<id>` warning (that recipe's quantities are not scaled). Each item has a
    default `role`; you may reclassify obvious cases (a garnish is `minor`).
-6. **Products** — resolve every non-staple item through `_cart.md` Product resolution (one
-   `resolve` call for the whole list).
+6. **Products** — pick and add every non-staple item through `_cart.md` Product resolution and fill
+   (one request for the whole list).
    **Key item with status none:** tell the user which recipe can't be made, propose a replacement (same
    loop as step 4), then `node scripts/shopping-list.ts drop data/runs/{today}-list.json <oldId>` and
    `node scripts/shopping-list.ts add data/runs/{today}-list.json <newId>`; resolve only the new or
-   changed items (shared items such as onions are reduced automatically).
+   changed items (shared items such as onions are reduced automatically; fix their cart quantity).
 7. **Habits** — `node scripts/habits.ts due`. Add every `auto` item and list them. For each `ask`
    item, one question ("Toilet paper — last bought 19 days ago, usually every ~21 days. Add it?"),
    then `node scripts/habits.ts answer <key> yes|no`.

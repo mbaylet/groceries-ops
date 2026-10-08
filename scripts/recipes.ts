@@ -34,6 +34,7 @@ export async function runFetch(urls: string[], opts: FetchOptions, deps: { profi
     tools: profile.tools,
     recentIds: recentIds(profile.plan.avoid_repeat_weeks, opts.today),
     rejectedIds: opts.rejectIds,
+    minRating: profile.recipes.min_rating,
   };
   const out: FetchResult[] = [];
   for (const url of urls) {

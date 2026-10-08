@@ -11,15 +11,14 @@ tools: [oven, hob]      # special appliances: cookeo, thermomix, monsieur_cuisin
 time:
   weekday_max_min: 30   # max total time (prep + cooking), minutes
   weekend_max_min: 90
-tags: []                # your own item labels, e.g. [enfant] — usable in rules
-preferences_text: ""    # your buying preferences in your own words (kept verbatim)
-product_rules: []       # generated from preferences_text by /groceries onboarding
-# scoring: { weights: { price_per_unit: 0.6, preferences: 0.35, rating: 0.05 }, indifference_pct: 3, close_call_pct: 5, on_unknown: reject }
+tags: []                # your own item labels, e.g. [enfant] — for items bought for someone in particular
+preferences_text: ""    # your buying preferences in your own words (kept verbatim; turned into data/product-brief.md at onboarding)
 store:
   provider: carrefour   # carrefour | list
   mode: drive           # drive | delivery
   store_id: ""
 recipes:
   sources: [marmiton]   # ordered; first is primary
+  # min_rating: 4       # minimum average rating out of 5; unrated recipes are rejected
 plan:
   avoid_repeat_weeks: 3
