@@ -29,9 +29,9 @@ not fixed strings. Recipe names, ingredient lines and product labels stay in the
    denied in `.claude/settings.json`. Every cart run ends by telling the user the cart is ready and
    checkout is theirs.
 2. **Nothing enters the cart without consent.** Only (a) lines the user approved in a review step,
-   (b) due habits with `mode: auto`, or (c) products a Haiku subagent picked and added itself because every
-   hard rule was verified (the user chose this on 2026-10-08; doubtful cases are never added, the user
-   decides). `ask` habits and staples need an explicit yes first.
+   (b) due habits with `mode: auto`, (c) items the user parked with `/groceries note` (they agreed when
+   parking), or (d) products a Haiku subagent picked and added itself because every hard rule was verified; doubtful cases are never added, the user decides. `ask` habits and
+   staples need an explicit yes first.
 3. **Filtering is the script's job.** Time, exclusions, appliances and repeats are decided by
    `node scripts/recipes.ts fetch`. Never show a recipe it rejected or that you did not fetch through it. Products are picked by Haiku subagents following the product brief (`data/product-brief.md`, see `modes/_cart.md`); the main model reconciles the cart and checks their choices afterwards.
 4. **Dates come from scripts.** Habit intervals and due dates come from `node scripts/habits.ts`.
@@ -60,6 +60,7 @@ not fixed strings. Recipe names, ingredient lines and product labels stay in the
 | `node scripts/recipes.ts sources \| search \| fetch \| show \| mark-used` | recipe search, fetch+filter+save |
 | `node scripts/shopping-list.ts build \| drop \| add` | scaled, merged list with per-recipe contributions |
 | `node scripts/habits.ts list \| due \| record \| answer \| reconcile \| propose \| set-mode \| set-interval \| remove` | purchase habits |
+| `node scripts/pending.ts add \| list \| remove \| done` | items parked for the next cart (`/groceries note`) |
 | `node scripts/choices.ts get \| set \| remove \| list` | remembered product choices |
 | `node scripts/brief.ts status \| build` | the product-picker brief for Haiku subagents (`data/product-brief.md`), rendered from `config/product-brief.template.md`, the provider and the user's rules |
 

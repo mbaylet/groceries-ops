@@ -39,6 +39,9 @@ Write the items to buy to `data/runs/{today}-request.json`:
 Query the plain ingredient ("riz", not "riz sachets cuisson 8 min"). `need` comes from the shopping list
 (`total` + `unit`; omit when unknown). Tag items the user labels. Give a distinct `slug` per line, even for
 the same ingredient with different tags. `ask` habits and staples join the request only after the user said yes.
+**Parked items** (`/groceries note`): `node scripts/pending.ts list`. Tell the user what is waiting, then add every
+parked item to the request (the user already agreed when parking it; a parked `qty` goes in `need` only when it is
+a clear number, otherwise one pack). The review table shows them as "parked".
 The subagents' choices go to temporary files in `data/runs/{today}-picks/`: empty that folder before dispatching.
 
 ### 3. Subagents
@@ -63,7 +66,9 @@ file: extract lines with a small node script, never paste it). Then check, yours
   right product from the pick's `options` or ask the user.
 Then, with the user: `doubtful` → show the ≤ 3 `options` one line each, add their pick yourself; `none` → say
 why, offer another search term or skipping (plan: for a key item replace the recipe); `error` → report.
-Delete `data/runs/{today}-picks/` once the Record step is done.
+Delete `data/runs/{today}-picks/` once the Record step is done. Parked items that ended up in the cart:
+`node scripts/pending.ts done "<item>"...`; the ones that were `none`, `doubtful` or failed stay parked and are
+mentioned to the user.
 
 ## Review
 

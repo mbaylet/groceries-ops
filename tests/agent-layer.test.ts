@@ -11,7 +11,7 @@ const agentFiles = ['AGENTS.md', '.claude/skills/groceries/SKILL.md', ...modeFil
 
 test('router references existing mode files', () => {
   const refs = [...read('.claude/skills/groceries/SKILL.md').matchAll(/`(modes\/[a-z_-]+\.md)`/g)].map((m) => m[1]);
-  for (const m of ['onboarding', 'plan', 'add', 'habits', 'setup', '_cart']) assert.ok(refs.includes(`modes/${m}.md`), m);
+  for (const m of ['onboarding', 'plan', 'add', 'note', 'habits', 'setup', '_cart']) assert.ok(refs.includes(`modes/${m}.md`), m);
   for (const r of refs) assert.ok(existsSync(join(REPO_ROOT, r)), r);
 });
 

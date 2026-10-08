@@ -30,7 +30,7 @@ and offer add mode.
    loop as step 4), then `node scripts/shopping-list.ts drop data/runs/{today}-list.json <oldId>` and
    `node scripts/shopping-list.ts add data/runs/{today}-list.json <newId>`; resolve only the new or
    changed items (shared items such as onions are reduced automatically; fix their cart quantity).
-7. **Habits** — `node scripts/habits.ts due`. Add every `auto` item and list them. For each `ask`
+7. **Parked items & habits** — parked items (`_cart.md`, Request) join the request of step 6. **Habits** — `node scripts/habits.ts due`. Add every `auto` item and list them. For each `ask`
    item, one question ("Toilet paper — last bought 19 days ago, usually every ~21 days. Add it?"),
    then `node scripts/habits.ts answer <key> yes|no`.
 8. **Staples** — one closing question naming the staple items the recipes use ("Your recipes need

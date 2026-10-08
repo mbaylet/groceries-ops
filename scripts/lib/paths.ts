@@ -16,6 +16,7 @@ export const paths = {
   habits: () => join(dataRoot(), 'data', 'habits.yml'),
   choices: () => join(dataRoot(), 'data', 'product-choices.yml'),
   runs: () => join(dataRoot(), 'data', 'runs'),
+  pending: () => join(dataRoot(), 'data', 'pending.yml'),
   productBrief: () => join(dataRoot(), 'data', 'product-brief.md'),
   profileTemplate: () => join(REPO_ROOT, 'config', 'profile.template.yml'),
   briefTemplate: () => join(REPO_ROOT, 'config', 'product-brief.template.md'),
