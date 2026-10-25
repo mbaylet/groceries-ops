@@ -66,3 +66,23 @@ test('tags and preferences_text are validated', () => {
     for (const s of ['tags:', 'preferences_text:']) assert.ok(all.includes(s), s);
   }
 });
+
+test('optional prep caps and rating count are validated', () => {
+  const raw = YAML.parse(VALID_PROFILE_YAML);
+  raw.time.weekday_prep_max_min = 10;
+  raw.time.weekend_prep_max_min = 20;
+  raw.recipes.min_rating = 4.5;
+  raw.recipes.min_rating_count = 10;
+  assert.ok(validateProfile(raw, opts).ok);
+
+  raw.time.weekday_prep_max_min = 'ten';
+  raw.time.weekend_prep_max_min = 2;
+  raw.recipes.min_rating_count = -1;
+  const v = validateProfile(raw, opts);
+  assert.ok(!v.ok);
+  if (!v.ok) {
+    const joined = v.errors.join('\n');
+    for (const field of ['time.weekday_prep_max_min', 'time.weekend_prep_max_min', 'recipes.min_rating_count'])
+      assert.ok(joined.includes(field), `missing error for ${field}:\n${joined}`);
+  }
+});

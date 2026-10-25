@@ -11,6 +11,8 @@ tools: [oven, hob]      # special appliances: cookeo, thermomix, monsieur_cuisin
 time:
   weekday_max_min: 30   # max total time (prep + cooking), minutes
   weekend_max_min: 90
+  # weekday_prep_max_min: 15   # optional: max preparation time alone (the recipe's prep time, not cooking)
+  # weekend_prep_max_min: 30
 tags: []                # your own item labels, e.g. [enfant] — for items bought for someone in particular
 preferences_text: ""    # your buying preferences in your own words (kept verbatim; turned into data/product-brief.md at onboarding)
 store:
@@ -20,5 +22,6 @@ store:
 recipes:
   sources: [marmiton]   # ordered; first is primary
   # min_rating: 4       # minimum average rating out of 5; unrated recipes are rejected
+  # min_rating_count: 10  # minimum number of ratings behind that average
 plan:
   avoid_repeat_weeks: 3

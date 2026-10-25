@@ -15,7 +15,8 @@ export const marmiton: RecipeSource = {
   searchHint: 'site:marmiton.org/recettes',
   matches: (url) => RECIPE_URL.test(url),
   parse: (html, url) => parseRecipeFromHtml(html, url, 'marmiton', marmitonSlug(url)),
-  searchUrl: (query) => `https://www.marmiton.org/recettes/recherche.aspx?aqt=${encodeURIComponent(query)}`,
+  searchUrl: (query, page = 1) =>
+    `https://www.marmiton.org/recettes/recherche.aspx?aqt=${encodeURIComponent(query)}${page > 1 ? `&page=${page}` : ''}`,
   parseSearch(html) {
     const urls: string[] = [];
     for (const n of extractJsonLdNodes(html)) {

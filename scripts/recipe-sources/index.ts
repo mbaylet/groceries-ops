@@ -1,9 +1,11 @@
 import { fetchHtml, type Fetcher } from '../lib/http.ts';
+import { cuisineaz } from './cuisineaz.ts';
 import { marmiton } from './marmiton.ts';
+import { ptitchef } from './ptitchef.ts';
 import type { Recipe, RecipeSource } from './types.ts';
 
 /** The only list of recipe sources. Adding one = module + line here + tests/fixtures/<id>/recipe-*.html. */
-export const SOURCES: readonly RecipeSource[] = [marmiton];
+export const SOURCES: readonly RecipeSource[] = [marmiton, cuisineaz, ptitchef];
 
 export function sourceIds(): string[] {
   return SOURCES.map((s) => s.id);
@@ -25,10 +27,10 @@ export async function fetchRecipe(url: string, fetcher: Fetcher = fetchHtml): Pr
   return s.parse(await fetcher(url), url);
 }
 
-export async function searchRecipes(id: string, query: string, limit: number, fetcher: Fetcher = fetchHtml): Promise<string[]> {
+export async function searchRecipes(id: string, query: string, limit: number, fetcher: Fetcher = fetchHtml, page = 1): Promise<string[]> {
   const s = getSource(id);
   if (!s.searchUrl || !s.parseSearch) {
     throw new Error(`Recipe source "${id}" has no search; use WebSearch with "${s.searchHint ?? s.label}"`);
   }
-  return s.parseSearch(await fetcher(s.searchUrl(query))).slice(0, limit);
+  return s.parseSearch(await fetcher(s.searchUrl(query, page))).slice(0, limit);
 }

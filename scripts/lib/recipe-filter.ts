@@ -20,11 +20,17 @@ export interface FilterCriteria {
   tools: string[];
   recentIds: string[];
   rejectedIds: string[];
+  /** maximum preparation time; a recipe without prepMin fails it */
+  maxPrepMin?: number;
   /** minimum average rating (out of 5); unrated recipes fail it */
   minRating?: number;
+  /** minimum number of ratings behind the average */
+  minRatingCount?: number;
 }
 
+/** Prep + cook when both are known: some sites publish a totalTime that is just the prep time. */
 export function effectiveTotalMin(r: Recipe): number | undefined {
+  if (r.prepMin !== undefined && r.cookMin !== undefined && r.prepMin + r.cookMin > 0) return r.prepMin + r.cookMin;
   if (r.totalMin !== undefined && r.totalMin > 0) return r.totalMin;
   if (r.prepMin === undefined && r.cookMin === undefined) return undefined;
   const t = (r.prepMin ?? 0) + (r.cookMin ?? 0);
@@ -41,9 +47,17 @@ export function filterRecipe(r: Recipe, c: FilterCriteria): { keep: boolean; rea
   if (t === undefined) reasons.push('no-time');
   else if (t > c.maxTotalMin) reasons.push(`too-long:${t}>${c.maxTotalMin}`);
 
-  if (c.minRating !== undefined) {
+  if (c.maxPrepMin !== undefined) {
+    if (r.prepMin === undefined) reasons.push('no-prep-time');
+    else if (r.prepMin > c.maxPrepMin) reasons.push(`prep-too-long:${r.prepMin}>${c.maxPrepMin}`);
+  }
+
+  if (c.minRating !== undefined || c.minRatingCount !== undefined) {
     if (!r.rating) reasons.push('no-rating');
-    else if (r.rating.value < c.minRating) reasons.push(`low-rating:${r.rating.value}<${c.minRating}`);
+    else {
+      if (c.minRating !== undefined && r.rating.value < c.minRating) reasons.push(`low-rating:${r.rating.value}<${c.minRating}`);
+      if (c.minRatingCount !== undefined && r.rating.count < c.minRatingCount) reasons.push(`few-ratings:${r.rating.count}<${c.minRatingCount}`);
+    }
   }
 
   const excluded = new Set(findExclusions([r.name, ...r.ingredients], c.exclusions).map((h) => h.exclusion));

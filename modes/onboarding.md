@@ -12,7 +12,10 @@ current value and ask what to change instead of starting over.
 3. **Kitchen tools** — record `oven`, `hob` and others they have. Special appliances matter for
    filtering: `cookeo`, `thermomix`, `monsieur_cuisine`, `companion`, `airfryer`, `slow_cooker`,
    `pressure_cooker`, `barbecue`, `plancha` — recipes needing one not listed are rejected.
-4. **Time** — usual maximum total time (prep + cooking) for a weekday meal and a weekend meal.
+4. **Time** — usual maximum total time (prep + cooking) for a weekday meal and a weekend meal
+   (`weekday_max_min`, `weekend_max_min`), then — if preparation effort matters to them — the maximum
+   hands-on preparation time alone for each (`weekday_prep_max_min`, `weekend_prep_max_min`; omit them
+   if the user does not care). Recipes over a cap are rejected by the script.
 5. **Buying preferences** — ask the user to describe them freely, in their own words (brands,
    organic, budget, animal welfare, origin, things never to buy, special rules for some people in
    the household, whether first-price products are acceptable). Store the text verbatim in

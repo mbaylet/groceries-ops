@@ -6,11 +6,11 @@ export interface Profile {
   household: { adults: number; children: { age: number }[]; servings: number };
   food: { diet: string; exclusions: string[]; preferences: string };
   tools: string[];
-  time: { weekday_max_min: number; weekend_max_min: number };
+  time: { weekday_max_min: number; weekend_max_min: number; weekday_prep_max_min?: number; weekend_prep_max_min?: number };
   tags: string[];
   preferences_text?: string;
   store: { provider: string; mode: 'drive' | 'delivery'; store_id: string };
-  recipes: { sources: string[]; min_rating?: number };
+  recipes: { sources: string[]; min_rating?: number; min_rating_count?: number };
   plan: { avoid_repeat_weeks: number };
 }
 
@@ -57,6 +57,9 @@ export function validateProfile(raw: unknown, opts: ValidateOptions = {}): Valid
   if (!isInt(t.weekday_max_min, 5, 600)) err('time.weekday_max_min', 'must be an integer between 5 and 600 (minutes)');
   if (!isInt(t.weekend_max_min, 5, 600)) err('time.weekend_max_min', 'must be an integer between 5 and 600 (minutes)');
 
+  for (const k of ['weekday_prep_max_min', 'weekend_prep_max_min'])
+    if (t[k] !== undefined && !isInt(t[k], 5, 600)) err(`time.${k}`, 'must be an integer between 5 and 600 (minutes)');
+
   const tags = raw.tags === undefined ? [] : raw.tags;
   if (!isStrArray(tags)) err('tags', 'must be a list of strings');
   if (raw.preferences_text !== undefined && typeof raw.preferences_text !== 'string') err('preferences_text', 'must be a string');
@@ -77,6 +80,9 @@ export function validateProfile(raw: unknown, opts: ValidateOptions = {}): Valid
 
   if (r.min_rating !== undefined && !(typeof r.min_rating === 'number' && r.min_rating >= 0 && r.min_rating <= 5))
     err('recipes.min_rating', 'must be a number between 0 and 5');
+
+  if (r.min_rating_count !== undefined && !isInt(r.min_rating_count, 0, 100000))
+    err('recipes.min_rating_count', 'must be a non-negative integer');
 
   const p = sec('plan');
   if (!isInt(p.avoid_repeat_weeks, 0, 52)) err('plan.avoid_repeat_weeks', 'must be an integer between 0 and 52');

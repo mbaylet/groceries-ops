@@ -22,8 +22,11 @@ export interface RecipeSource {
   searchHint?: string;
   matches(url: string): boolean;
   parse(html: string, url: string): Recipe;
-  searchUrl?(query: string): string;
+  /** `page` is 1-based; page 1 is the plain search URL */
+  searchUrl?(query: string, page?: number): string;
   parseSearch?(html: string): string[];
+  /** how many result pages the site really serves (default: unlimited); 1 = only the first page is reachable */
+  maxPages?: number;
 }
 
 export class RecipeParseError extends Error {

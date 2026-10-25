@@ -57,3 +57,28 @@ test('missing yield → unscaled with warning (review focus 5); roles', () => {
   assert.equal(item(l, 'courgette')?.role, 'key');
   assert.equal(buildList([curry], 4, staples).items.find((i) => i.key === 'oignon')?.role, 'minor');
 });
+
+test('meal check: a recipe without starch needs a side; seasoning and crumbs do not count', () => {
+  const l = buildList([curry, { id: 'm-pates', servings: 4, ingredients: ['400 g de pâtes', '2 courgettes'] }], 4, staples);
+  const meal = (id: string) => l.meals.find((m) => m.recipeId === id);
+  assert.equal(meal('m-curry')?.needsSide, true);
+  assert.deepEqual(meal('m-pates')?.starch, ['pate']);
+  assert.deepEqual(meal('m-pates')?.vegetable, ['courgette']);
+  assert.equal(meal('m-pates')?.needsSide, false);
+  const thin = buildList([{ id: 't', servings: 4, ingredients: ['2 cuillères à soupe de pâte de curry', '50 g de chapelure de pain', '200 g de haricots verts'] }], 4, staples);
+  assert.equal(thin.meals[0].needsSide, true);
+  assert.deepEqual(thin.meals[0].vegetable, ['haricot vert']);
+});
+
+test('sides are scaled per serving, attributed to their recipe and dropped with it', () => {
+  const l = buildList([curry, gratin], 4, staples, { 'm-curry': ['75 g de riz basmati'], 'm-gone': ['1 baguette'] });
+  const rice = item(l, 'riz basmati', 'g');
+  assert.equal(rice?.total, 300);
+  assert.deepEqual(rice?.contributions, { 'm-curry': 300 });
+  assert.equal(rice?.side, true);
+  assert.equal(item(l, 'oignon')?.side, undefined);
+  assert.deepEqual(l.sides, { 'm-curry': ['75 g de riz basmati'] });
+  assert.equal(l.meals.find((m) => m.recipeId === 'm-curry')?.needsSide, false);
+  assert.equal(l.meals.find((m) => m.recipeId === 'm-gratin')?.needsSide, true);
+  assert.equal(item(buildList([gratin], 4, staples, { 'm-curry': ['75 g de riz basmati'] }), 'riz basmati', 'g'), undefined);
+});

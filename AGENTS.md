@@ -57,8 +57,8 @@ not fixed strings. Recipe names, ingredient lines and product labels stay in the
 | Command | Purpose |
 |---|---|
 | `node scripts/doctor.ts [--json] [--offline]` | setup check |
-| `node scripts/recipes.ts sources \| search \| fetch \| show \| mark-used` | recipe search, fetch+filter+save |
-| `node scripts/shopping-list.ts build \| drop \| add` | scaled, merged list with per-recipe contributions |
+| `node scripts/recipes.ts sources \| search \| find \| fetch \| show \| mark-used` | recipe search; `find` = search + fetch + filter + save in one call; `fetch` for given URLs |
+| `node scripts/shopping-list.ts build \| drop \| add \| side` | scaled, merged list with per-recipe contributions; `meals` flags recipes without a starch, `side` adds one |
 | `node scripts/habits.ts list \| due \| record \| answer \| reconcile \| propose \| set-mode \| set-interval \| remove` | purchase habits |
 | `node scripts/pending.ts add \| list \| remove \| done` | items parked for the next cart (`/groceries note`) |
 | `node scripts/choices.ts get \| set \| remove \| list` | remembered product choices |

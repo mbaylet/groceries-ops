@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import YAML from 'yaml';
 import { effectiveTotalMin, filterRecipe, type FilterCriteria } from '../scripts/lib/recipe-filter.ts';
 import { listRecipes, loadRecipe, markUsed, recentIds, saveRecipe } from '../scripts/lib/recipe-store.ts';
-import { runFetch } from '../scripts/recipes.ts';
+import { runFetch, runFind } from '../scripts/recipes.ts';
 import type { Recipe } from '../scripts/recipe-sources/types.ts';
 import type { Profile } from '../scripts/lib/profile.ts';
 import { paths } from '../scripts/lib/paths.ts';
@@ -26,6 +26,34 @@ test('filter: time, fallback, no-time (review focus 5)', () => {
   assert.ok(filterRecipe(noTotal, crit).keep);
   assert.deepEqual(filterRecipe({ ...base, totalMin: undefined }, crit).reasons, ['no-time']);
   assert.equal(effectiveTotalMin({ ...base, totalMin: 0, prepMin: 5 }), 5);
+});
+
+test('filter: total is prep + cook when both exist, even if totalTime disagrees', () => {
+  const lying = { ...base, totalMin: 10, prepMin: 10, cookMin: 60 }; // site reports total = prep
+  assert.equal(effectiveTotalMin(lying), 70);
+  assert.deepEqual(filterRecipe(lying, crit).reasons, ['too-long:70>30']);
+  assert.equal(effectiveTotalMin({ ...base, totalMin: 40, prepMin: 10 }), 40); // cook missing → totalTime
+  assert.equal(effectiveTotalMin({ ...base, totalMin: undefined, prepMin: 10, cookMin: 0 }), 10);
+});
+
+test('filter: preparation cap', () => {
+  const timed = (prepMin: number | undefined, cookMin = 10) => ({ ...base, totalMin: undefined, prepMin, cookMin });
+  const capped = { ...crit, maxPrepMin: 10 };
+  assert.ok(filterRecipe(timed(10), capped).keep);
+  assert.deepEqual(filterRecipe(timed(15), capped).reasons, ['prep-too-long:15>10']);
+  assert.deepEqual(filterRecipe(timed(undefined), capped).reasons, ['no-prep-time']);
+  assert.ok(filterRecipe(timed(15), crit).keep); // no cap → prep ignored
+});
+
+test('filter: minimum number of ratings', () => {
+  const rated = (value: number, count: number) => ({ ...base, rating: { value, count } });
+  const c = { ...crit, minRating: 4.5, minRatingCount: 10 };
+  assert.ok(filterRecipe(rated(4.6, 10), c).keep);
+  assert.deepEqual(filterRecipe(rated(5, 2), c).reasons, ['few-ratings:2<10']);
+  assert.deepEqual(filterRecipe(rated(4.2, 50), c).reasons, ['low-rating:4.2<4.5']);
+  assert.deepEqual(filterRecipe(rated(4, 3), c).reasons, ['low-rating:4<4.5', 'few-ratings:3<10']);
+  assert.deepEqual(filterRecipe(base, c).reasons, ['no-rating']);
+  assert.ok(filterRecipe(rated(5, 2), { ...crit, minRatingCount: undefined }).keep);
 });
 
 test('filter: exclusions, tools, recent, rejected', () => {
@@ -94,4 +122,97 @@ test('runFetch: keeps, saves, rejects, reports errors', async () => {
   const picky = { ...open, recipes: { ...open.recipes, min_rating: 4.95 } }; // fixture is rated 4.9
   const [low] = await runFetch([BLANQUETTE], { maxMin: 180, rejectIds: [], today: day }, { profile: picky, fetcher });
   assert.deepEqual(low.reasons, ['low-rating:4.9<4.95']);
+});
+
+const searchHtml = readFileSync(join(paths.fixtures('marmiton'), 'search-curry-poulet.html'), 'utf8');
+const open = (): Profile => {
+  const p = YAML.parse(VALID_PROFILE_YAML) as Profile;
+  return { ...p, food: { ...p.food, exclusions: [] }, recipes: { sources: ['marmiton', 'ptitchef'] } };
+};
+const findOpts = { queries: ['curry'], pages: 1, want: 100, maxMin: 180, rejectIds: [] as string[], today: '2026-10-06', delayMs: 0 };
+
+/** Serves the Marmiton search fixture for search pages and the blanquette fixture for any recipe page. */
+function fakeWeb() {
+  const calls: string[] = [];
+  const fetcher = async (u: string) => {
+    calls.push(u);
+    if (u.includes('recherche.aspx')) return searchHtml;
+    if (u.includes('broken')) throw new Error('HTTP 500');
+    return fixtureHtml;
+  };
+  return { calls, fetcher };
+}
+
+test('fetch: --max-prep rejects long preparation, and the profile cap is the default', async () => {
+  const web = fakeWeb();
+  const profile = open();
+  const [byFlag] = await runFetch([BLANQUETTE], { maxMin: 180, maxPrep: 10, rejectIds: [], today: '2026-10-06' }, { profile, fetcher: web.fetcher });
+  assert.deepEqual(byFlag.reasons, ['prep-too-long:15>10']);
+  const capped = { ...profile, time: { ...profile.time, weekday_prep_max_min: 10 } };
+  const [byProfile] = await runFetch([BLANQUETTE], { maxMin: 180, rejectIds: [], today: '2026-10-06' }, { profile: capped, fetcher: web.fetcher });
+  assert.deepEqual(byProfile.reasons, ['prep-too-long:15>10']);
+  const [overridden] = await runFetch([BLANQUETTE], { maxMin: 180, maxPrep: 20, rejectIds: [], today: '2026-10-06' }, { profile: capped, fetcher: web.fetcher });
+  assert.ok(overridden.keep);
+  assert.equal(overridden.summary?.prepMin, 15);
+  assert.equal(overridden.summary?.cookMin, 120);
+});
+
+test('find: searches, fetches, filters and returns only the kept recipes', async () => {
+  const web = fakeWeb();
+  const r = await runFind(findOpts, { profile: open(), fetcher: web.fetcher });
+  assert.equal(r.kept.length, 10);
+  assert.ok(r.kept.every((k) => k.keep && k.summary?.prepMin === 15));
+  assert.equal(r.stats.examined, 10);
+  assert.deepEqual(r.stats.rejected, {});
+  assert.ok(existsSync(join(paths.recipes(), `${r.kept[0].id}.md`)));
+  assert.equal(r.enough, false); // asked for 100, the search only had 10
+});
+
+test('find: counts rejections by reason and says when nothing is left', async () => {
+  const web = fakeWeb();
+  const r = await runFind({ ...findOpts, maxMin: 60, maxPrep: 10 }, { profile: open(), fetcher: web.fetcher });
+  assert.equal(r.kept.length, 0);
+  assert.equal(r.stats.rejected['too-long'], 10);
+  assert.equal(r.stats.rejected['prep-too-long'], 10);
+  assert.equal(r.enough, false);
+});
+
+test('find: stops fetching once enough recipes are kept', async () => {
+  const web = fakeWeb();
+  const r = await runFind({ ...findOpts, want: 3, concurrency: 2 }, { profile: open(), fetcher: web.fetcher });
+  assert.ok(r.kept.length >= 3 && r.kept.length <= 4); // batches of 2 may overshoot by one
+  assert.ok(web.calls.filter((u) => !u.includes('recherche')).length <= 4);
+  assert.equal(r.enough, true);
+});
+
+test('find: pages, dedupes urls across queries and pages, honours maxPages', async () => {
+  const web = fakeWeb();
+  const r = await runFind({ ...findOpts, queries: ['curry', 'poulet'], pages: 2 }, { profile: open(), fetcher: web.fetcher });
+  const searches = web.calls.filter((u) => u.includes('recherche.aspx'));
+  assert.equal(searches.length, 4);
+  assert.ok(searches.some((u) => u.includes('aqt=poulet&page=2')));
+  assert.equal(r.stats.examined, 10); // same fixture every time → 10 distinct urls
+  const ptit = fakeWeb();
+  await runFind({ ...findOpts, source: 'ptitchef', pages: 3 }, { profile: open(), fetcher: async (u) => { ptit.calls.push(u); return ''; } });
+  assert.equal(ptit.calls.length, 1); // ptitchef serves one page only
+});
+
+test('find: errors are reported, not thrown; disabled and search-less sources are explained', async () => {
+  const r = await runFind({ ...findOpts, source: 'cuisineaz' }, { profile: open(), fetcher: fakeWeb().fetcher });
+  assert.equal(r.kept.length, 0);
+  assert.match(r.stats.errors[0], /cuisineaz.*not enabled/);
+  const failing = await runFind(findOpts, { profile: open(), fetcher: async () => { throw new Error('HTTP 503'); } });
+  assert.equal(failing.kept.length, 0);
+  assert.match(failing.stats.errors[0], /HTTP 503/);
+});
+
+test('find: re-evaluates a saved recipe from disk instead of downloading it again', async () => {
+  const web = fakeWeb();
+  const first = await runFind({ ...findOpts, want: 1, concurrency: 1 }, { profile: open(), fetcher: web.fetcher });
+  const url = first.kept[0].url;
+  const web2 = fakeWeb();
+  const again = await runFind({ ...findOpts, maxMin: 60 }, { profile: open(), fetcher: web2.fetcher });
+  assert.ok(web2.calls.every((u) => u !== url)); // known url never re-downloaded
+  assert.equal(again.stats.fromStore, 1);
+  assert.equal(again.stats.rejected['too-long'], 10);
 });
