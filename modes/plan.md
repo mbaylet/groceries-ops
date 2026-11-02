@@ -23,7 +23,11 @@ and offer add mode.
      Only `keep: true` results may be shown. Same for a recipe link the user gives you.
    - `stats.errors` full of failures (three in a row) → stop and suggest `/groceries setup`.
 4. **Choose and swap** — show a numbered shortlist with as many proposals as meals: name · prep + cook
-   minutes · servings · rating · one line on why it fits. Keep the other kept recipes in reserve.
+   minutes · servings · rating · estimated cost · one line on why it fits. Keep the other kept recipes in reserve.
+   **Estimated cost** — `node scripts/prices.ts estimate --servings <n> <id>...` for the recipes you show, including
+   any replacement. Render it as `≈ 9,50 € (2,40 €/pers.)`, adding `hors <ingredient>` for each `missing` entry. A
+   `total` of null shows no price (`reason` says why; `no-prices` → mention it once). Sides are not included. When
+   `food.preferences` states a cost cap per person, flag recipes above it (`⚠ au-dessus de 7 €`).
    The user can keep, replace ("replace 2"), constrain ("something without cream instead of 4"), or
    steer ("more like 1"). Replacements come from the reserve or new searches, always through
    `find` or `fetch`; pass rejected ids with `--reject id,id`. Repeat until the user says done.

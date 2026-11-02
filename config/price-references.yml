@@ -1,0 +1,53 @@
+# Ingredients whose price is read once a month to estimate what a recipe costs.
+# query: what to search · unit: how the store prices it (kg, l, u) · match: recipe names it covers (longest
+# match wins) · must: a product title must START with one of these · exclude: words that rule a product out ·
+# sizes: grams or ml of one recipe unit (piece = a count with no unit).
+# Household preferences do not belong here: see data/price-favorites.yml.
+references:
+  # Viandes
+  - { id: blanc-poulet, query: filet de poulet, unit: kg, match: [blanc de poulet, filet de poulet, escalope de poulet, aiguillette de poulet, poulet], must: [filet de poulet, filets de poulet, escalope de poulet, aiguillette de poulet], exclude: [pane, cuit, roti, tandoori, epice, rape, tranche, braise, four], sizes: { piece: 150 } }
+  - { id: cuisse-poulet, query: cuisse de poulet, unit: kg, match: [cuisse de poulet, haut de cuisse, pilon de poulet], must: [cuisse de poulet, haut de cuisse, pilon de poulet], exclude: [pane, cuit, roti], sizes: { piece: 250 } }
+  - { id: steak-hache, query: steak haché, unit: kg, match: [steak hache, viande hachee, boeuf hache], must: [steak hache, hache de boeuf, boeuf hache, hache pur boeuf], exclude: [vegetal, soja, vege], sizes: { piece: 125 } }
+  - { id: boeuf, query: boeuf à mijoter, unit: kg, match: [boeuf, bourguignon, paleron, gite], must: [viande bovine, boeuf, bourguignon, paleron, gite], exclude: [hache, bouillon, fond, cuit, plat, bourguignon carrefour], sizes: { piece: 150 } }
+  - { id: porc, query: côte de porc, unit: kg, match: [porc, echine, filet mignon], must: [cote de porc, cotes de porc, echine, filet mignon, roti de porc, escalope de porc], exclude: [cuit], sizes: { piece: 180 } }
+  - { id: dinde, query: escalope de dinde, unit: kg, match: [dinde], must: [escalope de dinde, filet de dinde, blanc de dinde, roti de dinde, dinde], exclude: [pane, cuit, tranche], sizes: { piece: 130 } }
+  - { id: veau, query: veau, unit: kg, match: [veau], must: [veau, escalope de veau, blanquette de veau, roti de veau, cote de veau], exclude: [fond, pane, plat], sizes: { piece: 150 } }
+  - { id: lardon, query: lardons, unit: kg, match: [lardon, poitrine fumee, poitrine], must: [lardon, allumette], exclude: [vege, jambon], sizes: { sachet: 200, barquette: 200 } }
+  - { id: jambon, query: jambon blanc, unit: kg, match: [jambon], must: [jambon], exclude: [cru, sec, pizza, sandwich], sizes: { tranche: 40, piece: 40 } }
+  - { id: saucisse, query: saucisses, unit: kg, match: [saucisse, chipolata, merguez, chorizo], must: [saucisse, chipolata, merguez, chorizo], sizes: { piece: 80 } }
+  # Poissons
+  - { id: saumon, query: pavé de saumon, unit: kg, match: [saumon], must: [pave de saumon, filet de saumon, dos de saumon, saumon], exclude: [fume, rillette, tartare, sauce], sizes: { piece: 125 } }
+  - { id: cabillaud, query: filet de cabillaud, unit: kg, match: [cabillaud, lieu, colin, merlu, poisson blanc, poisson], must: [filet de cabillaud, filets de cabillaud, dos de cabillaud, cabillaud, filet de lieu, filet de colin, filet de merlu], exclude: [pane, sauce], sizes: { piece: 125 } }
+  - { id: crevette, query: crevettes décortiquées, unit: kg, match: [crevette, gambas], must: [crevette, gambas], exclude: [sauce] }
+  - { id: thon, query: thon en boîte, unit: kg, match: [thon], must: [thon], exclude: [salade, rillette, sauce], sizes: { boite: 140, piece: 140 } }
+  - { id: moule, query: moules, unit: kg, match: [moule], must: [moule], exclude: [gateau, silicone, sauce] }
+  # Légumes
+  - { id: carotte, query: carottes, unit: kg, match: [carotte], must: [carotte], exclude: [rapee, rape, rondelle, baby, extra fine, boite, jus, puree], sizes: { piece: 100 } }
+  - { id: pomme-de-terre, query: pommes de terre, unit: kg, max: 4, match: [pomme de terre, patate], must: [pomme de terre], exclude: [puree, frite, four, rissolee, vapeur, ecrase, croque], sizes: { piece: 150 } }
+  - { id: oignon, query: oignons, unit: kg, max: 5, match: [oignon], must: [oignon], exclude: [soupe, frit, confit, poudre, emince, aroma], sizes: { piece: 150 } }
+  - { id: echalote, query: échalotes, unit: kg, max: 12, match: [echalote], must: [echalote], exclude: [sauce, poudre, ducros, lyophilise], sizes: { piece: 30 } }
+  - { id: tomate, query: tomates, unit: kg, match: [tomate], must: [tomate], exclude: [sauce, concentre, concasse, concassee, pulpe, coulis, pelee, seche, soupe, jus, puree, cuisine], sizes: { piece: 150 } }
+  - { id: courgette, query: courgettes, unit: kg, match: [courgette], must: [courgette], exclude: [soupe, gratin, poelee, cuisinee, rondelle, provencale], sizes: { piece: 250 } }
+  - { id: poireau, query: poireaux, unit: kg, match: [poireau], must: [poireau], exclude: [soupe, fondue, rondelle, emince], sizes: { piece: 200 } }
+  - { id: champignon, query: champignons de Paris, unit: kg, match: [champignon], must: [champignon], exclude: [boite, sauce, soupe, emince, ragout], sizes: { piece: 20, barquette: 250 } }
+  - { id: potiron, query: potiron, unit: u, match: [potiron, butternut, courge], must: [potiron, butternut, courge], exclude: [soupe, veloute, puree, graine, melange], sizes: { piece: 1500 } }
+  - { id: aubergine-poivron, query: poivrons, unit: kg, max: 8, match: [poivron, aubergine], must: [poivron, aubergine], exclude: [grille, sauce, cuisinee], sizes: { piece: 200 } }
+  - { id: legume-vert, query: haricots verts, unit: kg, match: [haricot vert, epinard, brocoli, chou fleur, petit pois], must: [haricot vert, haricots verts, epinard, brocoli, chou fleur, petit pois], exclude: [beurre, boite, soupe, puree, extra fin], sizes: { piece: 500 } }
+  # Féculents
+  - { id: riz, query: riz basmati, unit: kg, match: [riz], must: [riz], exclude: [lait, gateau, galette, salade, cuisson, vinaigre, pudding, 2min, min] }
+  - { id: pates, query: pâtes, unit: kg, match: [pate, spaghetti, tagliatelle, penne, fusilli, macaroni, coquillette, linguine, nouille, lasagne], not_match: [feuilletee, brisee, sablee, pizza, curry, arachide, tartiner], must: [pate, spaghetti, tagliatelle, penne, fusilli, macaroni, coquillette], exclude: [feuilletee, brisee, sablee, pizza, curry, sauce, tartiner, fraiche, sans gluten] }
+  - { id: semoule, query: semoule, unit: kg, match: [semoule, boulgour, quinoa], must: [semoule, boulgour, quinoa], exclude: [salade, taboule, gateau, plat, lait, vanille] }
+  - { id: lentille, query: lentilles, unit: kg, match: [lentille, pois chiche], must: [lentille, pois chiche], exclude: [salade, soupe, puree, plat, saucisse, cuisinee] }
+  - { id: pain, query: baguette, unit: kg, match: [pain, baguette, chapelure], must: [baguette, pain], exclude: [epice, sans gluten, burger, hot dog, grille], sizes: { piece: 250 } }
+  # Crémerie
+  - { id: creme, query: crème fraîche, unit: l, match: [creme], must: [creme fraiche, creme legere, creme uht, creme liquide, creme fluide, creme entiere, creme epaisse, creme semi], exclude: [dessert, glace, marron, patissiere, soja, coco, avoine, chocolat, caramel, vanille, savon, mascarpone], sizes: { pot: 200, sachet: 200, brique: 200 } }
+  - { id: lait, query: lait demi-écrémé, unit: l, match: [lait], must: [lait], exclude: [coco, amande, avoine, soja, bebe, croissance, chocolat, poudre, concentre, sans lactose] }
+  - { id: beurre, query: beurre doux, unit: kg, match: [beurre], must: [beurre], exclude: [cacahuete, biscuit, sable, sauce, assaisonnement] }
+  - { id: oeuf, query: oeufs, unit: u, match: [oeuf], must: [oeuf], exclude: [chocolat, sauce], sizes: { piece: 60 } }
+  - { id: fromage-rape, query: fromage râpé, unit: kg, match: [fromage rape, gruyere, emmental, comte, mozzarella, chevre, feta, fromage], must: [fromage rape, emmental, gruyere, comte, mozzarella, rape], exclude: [parmesan, parmigiano, sauce, plat, carotte, celeri, bio mifroma] }
+  - { id: parmesan, query: parmesan, unit: kg, match: [parmesan, parmigiano], must: [parmesan, parmigiano, fromage rape parmigiano], exclude: [sauce, chips, biscuit, tuile, crouton] }
+  - { id: yaourt, query: yaourt nature, unit: kg, match: [yaourt, fromage blanc, mascarpone], must: [yaourt], exclude: [fruit, boire, vanille, citron, fraise], sizes: { piece: 125, pot: 125 } }
+  # Divers
+  - { id: lait-de-coco, query: lait de coco, unit: l, match: [lait de coco, creme de coco], must: [lait de coco], exclude: [sauce, boisson, curry], sizes: { boite: 400, brique: 200, piece: 400 } }
+  - { id: tomate-conserve, query: tomates concassées, unit: kg, match: [tomate concassee, tomate pelee, pulpe de tomate, coulis de tomate, sauce tomate, concentre de tomate, tomate en boite], must: [concasse, tomate concassee, tomate pelee, pulpe, coulis], exclude: [piment, pizza], sizes: { boite: 400, piece: 400 } }
+  - { id: vin-blanc, query: vin blanc sec, unit: l, match: [vin blanc], must: [vin blanc], exclude: [vinaigre, sauce] }

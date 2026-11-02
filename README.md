@@ -98,7 +98,7 @@ config/
   staples.default.yml          pantry staples and consumables never added automatically
   product-brief.template.md    generic instructions for the product-picking subagents
 scripts/                       JSON in, JSON out (errors on stderr, exit 1)
-  doctor.ts  recipes.ts  shopping-list.ts  habits.ts  choices.ts  pending.ts  brief.ts
+  doctor.ts  recipes.ts  shopping-list.ts  habits.ts  choices.ts  pending.ts  brief.ts  prices.ts
   lib/                         profile, provider, MCP session, recipe filter, ingredient parsing, …
   recipe-sources/              recipe sources behind one interface (marmiton.ts)
 tests/                         node:test suite with saved fixtures
@@ -129,6 +129,7 @@ another store means writing another provider file, not touching the modes.
 | `node scripts/habits.ts list \| due \| record \| answer \| reconcile \| propose \| set-mode \| set-interval \| remove` | purchase habits |
 | `node scripts/choices.ts get \| set \| remove \| list` | remembered product choices |
 | `node scripts/pending.ts add \| list \| remove \| done` | items parked for the next cart |
+| `node scripts/prices.ts status \| references \| ingest \| done \| estimate` | monthly reference prices and recipe cost estimates |
 | `node scripts/brief.ts status \| build` | the product-picker brief |
 
 ## Development

@@ -1,0 +1,578 @@
+{
+ "data": [
+  {
+   "type": "product",
+   "id": "product-3523680485259",
+   "attributes": {
+    "ean": "3523680485259",
+    "title": "Carottes Bio",
+    "shortTitle": "Carottes Bio",
+    "brand": null,
+    "packaging": "Le sachet de 1,5Kg",
+    "format": "1,5Kg",
+    "flags": [
+     "flag.common.organic"
+    ],
+    "offers": {
+     "3523680485259": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 3.75,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 2.5,
+         "perUnitLabel": "2.50 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3523680485259"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3523680483545",
+   "attributes": {
+    "ean": "3523680483545",
+    "title": "Carottes agroécologie FILIERE QUALITE CARREFOUR",
+    "shortTitle": "Carottes agroécologie FILIERE QUALITE CARREFOUR",
+    "brand": "FILIERE QUALITE CARREFOUR",
+    "packaging": "Le sachet de 1,5Kg",
+    "format": "1,5Kg",
+    "flags": [],
+    "offers": {
+     "3523680483545": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 3.19,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 2.13,
+         "perUnitLabel": "2.13 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3523680483545"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3276558384832",
+   "attributes": {
+    "ean": "3276558384832",
+    "title": "Carottes vrac FILIERE QUALITE CARREFOUR",
+    "shortTitle": "Carottes vrac FILIERE QUALITE CARREFOUR",
+    "brand": "FILIERE QUALITE CARREFOUR",
+    "packaging": "le kilo",
+    "format": "1Kg",
+    "flags": [
+     "flag.common.qualityline"
+    ],
+    "offers": {
+     "3276558384832": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 1.19,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 1.19,
+         "perUnitLabel": "1.19 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3276558384832"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3276552611057",
+   "attributes": {
+    "ean": "3276552611057",
+    "title": "Carottes vrac",
+    "shortTitle": "Carottes vrac",
+    "brand": null,
+    "packaging": "le kilo",
+    "format": "1kg",
+    "flags": [],
+    "offers": {
+     "3276552611057": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 1.79,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 1.79,
+         "perUnitLabel": "1.79 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3276552611057"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3276556001885",
+   "attributes": {
+    "ean": "3276556001885",
+    "title": "Carottes botte fanes",
+    "shortTitle": "Carottes botte fanes",
+    "brand": null,
+    "packaging": "la botte",
+    "format": "la pièce",
+    "flags": [],
+    "offers": {
+     "3276556001885": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 2.79,
+         "taxMessage": "",
+         "unitOfMeasure": "U",
+         "perUnit": 2.79,
+         "perUnitLabel": "2.79 € / U"
+        },
+        "marketplace": null,
+        "ean": "3276556001885"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3270190204152",
+   "attributes": {
+    "ean": "3270190204152",
+    "title": "Carottes en rondelles CARREFOUR CLASSIC'",
+    "shortTitle": "Carottes en rondelles CARREFOUR CLASSIC'",
+    "brand": "CARREFOUR CLASSIC'",
+    "packaging": "le sachet d'1Kg",
+    "format": null,
+    "flags": [
+     "flag.common.frozen",
+     "flag.common.fruitslegumesfr"
+    ],
+    "offers": {
+     "3270190204152": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 1.15,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 1.15,
+         "perUnitLabel": "1.15 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3270190204152"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3280220872015",
+   "attributes": {
+    "ean": "3280220872015",
+    "title": "Baby Carottes Prêtes à Croquer FLORETTE",
+    "shortTitle": "Baby Carottes Prêtes à Croquer FLORETTE",
+    "brand": "FLORETTE",
+    "packaging": "Le sachet de 250g",
+    "format": "250g",
+    "flags": [],
+    "offers": {
+     "3280220872015": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 2.49,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 9.96,
+         "perUnitLabel": "9.96 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3280220872015"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3560071176266",
+   "attributes": {
+    "ean": "3560071176266",
+    "title": "Carottes en rondelles CARREFOUR EXTRA",
+    "shortTitle": "Carottes en rondelles CARREFOUR EXTRA",
+    "brand": "CARREFOUR EXTRA",
+    "packaging": "le sachet de 750g",
+    "format": null,
+    "flags": [
+     "flag.common.frozen",
+     "flag.common.fruitslegumesfr"
+    ],
+    "offers": {
+     "3560071176266": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 1.19,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 1.59,
+         "perUnitLabel": "1.59 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3560071176266"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3270190207511",
+   "attributes": {
+    "ean": "3270190207511",
+    "title": "Carottes râpées au jus de citron CARREFOUR CLASSIC'",
+    "shortTitle": "Carottes râpées au jus de citron CARREFOUR CLASSIC'",
+    "brand": "CARREFOUR CLASSIC'",
+    "packaging": "la barquette de 500g",
+    "format": "500g",
+    "flags": [],
+    "offers": {
+     "3270190207511": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 1.09,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 2.18,
+         "perUnitLabel": "2.18 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3270190207511"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3280220201006",
+   "attributes": {
+    "ean": "3280220201006",
+    "title": "Carottes Râpées FLORETTE",
+    "shortTitle": "Carottes Râpées FLORETTE",
+    "brand": "FLORETTE",
+    "packaging": "Le sachet de 250g",
+    "format": "250g",
+    "flags": [],
+    "offers": {
+     "3280220201006": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 1.9,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 7.6,
+         "perUnitLabel": "7.60 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3280220201006"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3280222204135",
+   "attributes": {
+    "ean": "3280222204135",
+    "title": "Baby Carottes Prêtes à Croquer Maxi Format FLORETTE",
+    "shortTitle": "Baby Carottes Prêtes à Croquer Maxi Format FLORETTE",
+    "brand": "FLORETTE",
+    "packaging": "Le sachet de 450g",
+    "format": "450g",
+    "flags": [],
+    "offers": {
+     "3280222204135": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 3.89,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 8.64,
+         "perUnitLabel": "8.64 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3280222204135"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "type": "product",
+   "id": "product-3560070303076",
+   "attributes": {
+    "ean": "3560070303076",
+    "title": "Carottes extra-fines CARREFOUR CLASSIC'",
+    "shortTitle": "Carottes extra-fines CARREFOUR CLASSIC'",
+    "brand": "CARREFOUR CLASSIC'",
+    "packaging": "la boite de 265g net égoutté",
+    "format": "265g",
+    "flags": [],
+    "offers": {
+     "3560070303076": {
+      "0345-150-711": {
+       "type": "offer",
+       "subType": "carrefour",
+       "id": "0345-150-711",
+       "attributes": {
+        "availability": {
+         "indispensable": false,
+         "purchasable": true,
+         "stopped": false,
+         "suspended": false,
+         "suspensionReason": null,
+         "hasLowQuantity": false
+        },
+        "price": {
+         "price": 0.99,
+         "taxMessage": "",
+         "unitOfMeasure": "KG",
+         "perUnit": 3.74,
+         "perUnitLabel": "3.74 € / KG"
+        },
+        "marketplace": null,
+        "ean": "3560070303076"
+       },
+       "meta": {
+        "cta": "buy"
+       },
+       "links": {
+        "self": ""
+       }
+      }
+     }
+    }
+   }
+  }
+ ]
+}
