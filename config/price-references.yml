@@ -1,4 +1,4 @@
-# Ingredients whose price is read once a month to estimate what a recipe costs.
+# Ingredients whose price is read every two months to estimate what a recipe costs.
 # query: what to search · unit: how the store prices it (kg, l, u) · match: recipe names it covers (longest
 # match wins) · must: a product title must START with one of these · exclude: words that rule a product out ·
 # sizes: grams or ml of one recipe unit (piece = a count with no unit).

@@ -129,7 +129,7 @@ another store means writing another provider file, not touching the modes.
 | `node scripts/habits.ts list \| due \| record \| answer \| reconcile \| propose \| set-mode \| set-interval \| remove` | purchase habits |
 | `node scripts/choices.ts get \| set \| remove \| list` | remembered product choices |
 | `node scripts/pending.ts add \| list \| remove \| done` | items parked for the next cart |
-| `node scripts/prices.ts status \| references \| ingest \| done \| estimate` | monthly reference prices and recipe cost estimates |
+| `node scripts/prices.ts status \| references \| ingest \| done \| estimate` | reference prices read every two months and recipe cost estimates |
 | `node scripts/brief.ts status \| build` | the product-picker brief |
 
 ## Development

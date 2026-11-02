@@ -1,7 +1,7 @@
-# Monthly price reading (used by the session start in `AGENTS.md`)
+# Price reading, every two months (used by the session start in `AGENTS.md`)
 
 Reads the store's prices for the ingredients in `config/price-references.yml`, so plan mode can show what each
-recipe costs. Search only: nothing here touches the cart. Prices are estimates; a month-old price is fine.
+recipe costs. Search only: nothing here touches the cart. Prices are estimates; a price a few weeks old is fine.
 
 Reached when `node scripts/prices.ts status` says `enabled: true` and `stale: true`.
 

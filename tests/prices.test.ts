@@ -191,6 +191,21 @@ test('an absurd count from a recipe site is read as grams', () => {
   assert.equal(c.total, 2.4);
 });
 
+test('a weight written in the recipe line beats the default portion', () => {
+  const cost = (line: string, servings = 2) => estimateRecipe({ id: 'r', servings, ingredients: [line] }, 2, refs, prices, staples).total;
+  // 400 g × 2 €/kg, pas la portion par défaut de 100 g
+  assert.equal(cost("1 carotte d'environ 400 g"), 0.8);
+  // le poids vaut pour chaque pièce : 2 × 150 g × 2 €/kg
+  assert.equal(cost('2 carottes de 150 g'), 0.6);
+  // recette pour 4 ramenée à 2 : 200 g × 2 €/kg
+  assert.equal(cost("1 carotte d'environ 400 g", 4), 0.4);
+  // volume et parenthèses : 200 ml × 4 €/l ; kilo : 1000 g × 2 €/kg
+  assert.equal(cost('1 boîte de crème (20 cl)'), 0.8);
+  assert.equal(cost('1 carotte de 1 kg'), 2);
+  // un pourcentage n'est pas un poids : 1 c. à soupe = 15 ml × 4 €/l
+  assert.equal(cost('1 c. à soupe de crème 15%'), 0.06);
+});
+
 test('an important ingredient without a price is named, a small one is not', () => {
   const e = estimateRecipe(
     { id: 'r', servings: 2, ingredients: ['500 g de rôti de biche', '1 c. à café de zaatar', '100 g de blanc de poulet'] },
@@ -213,9 +228,9 @@ test('a recipe without a yield has no price rather than a wrong one', () => {
   assert.equal(e.reason, 'no-yield');
 });
 
-test('freshness: stale from 30 days, or when nothing is priced', () => {
-  assert.equal(priceStatus(prices, refs, '2026-10-30').stale, false);
-  assert.equal(priceStatus(prices, refs, '2026-10-31').stale, true);
+test('freshness: stale from 60 days, or when nothing is priced', () => {
+  assert.equal(priceStatus(prices, refs, '2026-11-29').stale, false);
+  assert.equal(priceStatus(prices, refs, '2026-11-30').stale, true);
   assert.equal(priceStatus({ updated: '2026-10-30', prices: {} }, refs, '2026-10-31').stale, true);
   assert.deepEqual(priceStatus({ updated: '2026-10-30', prices: {} }, refs, '2026-10-31').hasPrices, false);
 });

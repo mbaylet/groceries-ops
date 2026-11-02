@@ -55,8 +55,8 @@ export interface Estimate {
   reason?: 'no-yield' | 'no-prices';
 }
 
-/** Prices older than this trigger a new reading. */
-export const MAX_AGE_DAYS = 30;
+/** Prices older than this trigger a new reading (about two months). */
+export const MAX_AGE_DAYS = 60;
 
 const SPOON_ML: Record<string, number> = { cas: 15, cac: 5, verre: 200 };
 const FLAG_WORDS: Record<string, string> = { 'flag.common.organic': 'bio', 'flag.common.labelrouge': 'label rouge' };
@@ -164,10 +164,26 @@ function withPlausibleUnit(item: ListItem): ListItem {
   return !weighed && (raw.qty ?? 0) >= ABSURD_COUNT ? { ...item, unit: 'g' } : item;
 }
 
+const STATED_WEIGHT = /(\d+(?:[.,]\d+)?)\s*(kg|g|gr|grammes?|l|cl|ml)(?![\p{L}\d])/iu;
+const WEIGHT_FACTORS: Record<string, number> = { kg: 1000, g: 1, gr: 1, gramme: 1, grammes: 1, l: 1000, cl: 10, ml: 1 };
+const SPOONS = new Set(['cas', 'cac', 'pincee']);
+
+/** The weight of one piece when the line says it: "1 lieu noir d'environ 400 g", "1 boîte (20 cl)". */
+function statedWeight(item: ListItem): number | undefined {
+  if (SPOONS.has(item.unit ?? '')) return undefined;
+  const line = item.lines[0] ?? '';
+  const quantity = parseIngredientLine(line);
+  const m = STATED_WEIGHT.exec(line.replace(/^\s*[\d.,/½¼¾⅓⅔]+\s*/, ''));
+  if (!m || quantity.qty === undefined) return undefined;
+  return Number(m[1].replace(',', '.')) * WEIGHT_FACTORS[m[2].toLowerCase()];
+}
+
 /** Grams or ml for an item's quantity, when its recipe unit converts. */
 function toGrams(item: ListItem, ref: PriceReference): number | undefined {
   if (item.total === undefined) return undefined;
   if (item.unit === 'g' || item.unit === 'ml') return item.total;
+  const stated = statedWeight(item);
+  if (stated !== undefined) return item.total * stated;
   const size = SPOON_ML[item.unit ?? ''] ?? ref.sizes?.[item.unit ?? 'piece'];
   return size === undefined ? undefined : item.total * size;
 }
@@ -175,7 +191,7 @@ function toGrams(item: ListItem, ref: PriceReference): number | undefined {
 function itemCost(item: ListItem, ref: PriceReference, entry: PriceEntry): number | undefined {
   if (item.total === undefined) return undefined;
   if (ref.unit === 'u') {
-    if (item.unit === undefined) return item.total * entry.unitPrice;
+    if (item.unit === undefined && statedWeight(item) === undefined) return item.total * entry.unitPrice;
     const grams = toGrams(item, ref);
     const piece = ref.sizes?.piece;
     return grams === undefined || !piece ? undefined : (grams / piece) * entry.unitPrice;

@@ -16,7 +16,7 @@ Run silently: `node scripts/doctor.ts --json`
 - Otherwise say nothing about the doctor.
 
 When the first message is about groceries and neither `onboardingNeeded` nor `blocking` is true, also run
-`node scripts/prices.ts status`. `enabled: true` and `stale: true` → run `modes/_prices.md` (monthly price reading).
+`node scripts/prices.ts status`. `enabled: true` and `stale: true` → run `modes/_prices.md` (price reading, every two months).
 Otherwise say nothing about prices. Other sessions never touch the store for this.
 
 ## Language
@@ -66,7 +66,7 @@ not fixed strings. Recipe names, ingredient lines and product labels stay in the
 | `node scripts/habits.ts list \| due \| record \| answer \| reconcile \| propose \| set-mode \| set-interval \| remove` | purchase habits |
 | `node scripts/pending.ts add \| list \| remove \| done` | items parked for the next cart (`/groceries note`) |
 | `node scripts/choices.ts get \| set \| remove \| list` | remembered product choices |
-| `node scripts/prices.ts status \| references \| ingest \| done \| estimate` | monthly reference prices and the estimated cost of a recipe (quantities used, without sides) |
+| `node scripts/prices.ts status \| references \| ingest \| done \| estimate` | reference prices read every two months and the estimated cost of a recipe (quantities used, without sides) |
 | `node scripts/brief.ts status \| build` | the product-picker brief for Haiku subagents (`data/product-brief.md`), rendered from `config/product-brief.template.md`, the provider and the user's rules |
 
 ## Development

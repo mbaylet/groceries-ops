@@ -16,7 +16,7 @@ const USAGE = `usage:
   prices.ts status                          are the prices due for a new reading?
   prices.ts references                      what to search: [{ id, query }]
   prices.ts ingest <referenceId> <file>     compute and store a price from a saved search result
-  prices.ts done                            mark the monthly reading as finished
+  prices.ts done                            mark the reading as finished
   prices.ts estimate [--servings n] <recipeId>...`;
 
 function productRules(): unknown[] {
